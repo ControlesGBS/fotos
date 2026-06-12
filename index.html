@@ -380,7 +380,7 @@ function renderGraficos(dados){
 
 function renderTabela(dados){
   // Ordenar por n_exec desc
-  const sorted=[...dados].sort((a,b)=>a.ul.localeCompare(b.ul));
+  const sorted=[...dados].filter(r=>(r.n_exec||0)>0).sort((a,b)=>a.ul.localeCompare(b.ul));
   const total=sorted.length;
 
   document.getElementById('tbody-fotos').innerHTML=sorted.length
