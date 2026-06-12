@@ -243,9 +243,16 @@ async function carregarDados(){
   }
 
   // Buscar leituristas do mês
-  const {data:ulLeit}=await sb.from('ul_leiturista').select('ul,matricula').eq('mes_ref',mesRef);
+  let ulLeitAll=[], ulFrom=0;
+  while(true){
+    const {data:lote}=await sb.from('ul_leiturista').select('ul,matricula').eq('mes_ref',mesRef).range(ulFrom,ulFrom+999);
+    if(!lote||!lote.length) break;
+    ulLeitAll=ulLeitAll.concat(lote);
+    if(lote.length<1000) break;
+    ulFrom+=1000;
+  }
   const ulLeitMap={};
-  (ulLeit||[]).forEach(r=>{ ulLeitMap[r.ul]=r.matricula; });
+  ulLeitAll.forEach(r=>{ ulLeitMap[r.ul]=r.matricula; });
 
   // Buscar nomes das matrículas
   const mats=[...new Set(Object.values(ulLeitMap))];
