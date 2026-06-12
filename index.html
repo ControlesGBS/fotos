@@ -201,12 +201,21 @@ async function sair(){ await sb.auth.signOut(); location.href='../login.html'; }
 function pctClass(pct){ if(pct<=10) return 'pct-ok'; if(pct<=30) return 'pct-med'; return 'pct-ruim'; }
 
 async function carregarMeses(){
-  const {data}=await sb.from('fotos').select('mes_ref').order('mes_ref',{ascending:false});
-  const meses=[...new Set((data||[]).map(r=>r.mes_ref))];
+  // Buscar todos os registros para pegar meses distintos (pode ter mais de 1000)
+  let allRecs=[], from=0;
+  while(true){
+    const {data:lote}=await sb.from('fotos').select('mes_ref').order('mes_ref',{ascending:false}).range(from,from+999);
+    if(!lote||!lote.length) break;
+    allRecs=allRecs.concat(lote);
+    if(lote.length<1000) break;
+    from+=1000;
+  }
+  const meses=[...new Set(allRecs.map(r=>r.mes_ref))].sort().reverse();
   const sel=document.getElementById('f-mes');
   sel.innerHTML='<option value="">-- selecione --</option>';
   meses.forEach(m=>{
-    const [aa,mm]=m.split('-');
+    const parts=m.split('-');
+    const aa=parts[0], mm=parts[1];
     sel.innerHTML+=`<option value="${m}">${mm}/${aa}</option>`;
   });
   if(meses.length){ sel.value=meses[0]; carregarDados(); }
