@@ -38,7 +38,7 @@ body{font-family:system-ui,sans-serif;background:#f4f6f4;color:#1a2a1a;font-size
 .secao{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;overflow:hidden;margin-bottom:10px}
 .secao-hdr{background:#1a4a1a;color:#c0e8c0;padding:10px 14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .secao-hdr span{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.secao-body{overflow-x:auto;max-height:500px;overflow-y:auto}
+.secao-body{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:6px 8px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:1}
 tbody tr:nth-child(even){background:#f8fbf8}
@@ -92,6 +92,13 @@ td.left{text-align:left}
     <div><label>Leiturista</label>
       <select id="f-leit" onchange="aplicarFiltros()"><option value="">Todos</option></select>
     </div>
+    <div><label>Tipo</label>
+      <select id="f-tipo" onchange="aplicarFiltros()">
+        <option value="">Todos</option>
+        <option value="URBANO">Urbano (01-88)</option>
+        <option value="RURAL">Rural (89-99)</option>
+      </select>
+    </div>
   </div>
 
   <div class="kpis">
@@ -119,7 +126,7 @@ td.left{text-align:left}
     <div class="secao-body">
       <table>
         <thead><tr>
-          <th>UL</th><th>RZ</th><th>Leiturista</th><th>Nome</th><th>Base</th>
+          <th>UL</th><th>RZ</th><th>Tipo</th><th>Leiturista</th><th>Nome</th><th>Base</th>
           <th>Solicitadas</th><th>Realizadas</th><th>Ñ Executadas</th><th>Taxa Ñ Exec.</th>
         </tr></thead>
         <tbody id="tbody-fotos"></tbody>
@@ -279,10 +286,12 @@ function aplicarFiltros(){
   const rz=document.getElementById('f-rz').value;
   const leit=document.getElementById('f-leit').value;
 
+  const tipo=document.getElementById('f-tipo').value;
   const filt=dadosRaw.filter(r=>{
     if(base&&r.base!==base) return false;
     if(rz&&r.rz!==rz) return false;
     if(leit&&r.matricula!==leit) return false;
+    if(tipo&&r.tipo_rota!==tipo) return false;
     return true;
   });
 
@@ -309,7 +318,7 @@ function renderGraficos(dados){
     porBase[r.base].sol+=r.solicit||0;
     porBase[r.base].nexec+=r.n_exec||0;
   });
-  const basesArr=Object.entries(porBase).sort((a,b)=>b[1].sol-a[1].sol);
+  const basesArr=Object.entries(porBase).sort((a,b)=>b[1].nexec-a[1].nexec);
 
   if(chartBase) chartBase.destroy();
   chartBase=new Chart(document.getElementById('chart-base'),{
@@ -374,6 +383,7 @@ function renderTabela(dados){
         return `<tr>
           <td class="left">${r.ul}</td>
           <td>${r.rz}</td>
+          <td>${r.tipo_rota||'—'}</td>
           <td>${r.matricula||'—'}</td>
           <td class="left">${r.nome||'—'}</td>
           <td>${r.base||'—'}</td>
@@ -456,8 +466,10 @@ async function processarFotos(){
         const mesNum=parseInt(mesRef.split('-')[1]);
         if(!estaNoMesFotos(rota, mesNum)) continue; // pular rotas fora do ciclo
         const map=LOCAL_MAP[lc]||{};
+        const rotaNum2=parseInt(rota);
+        const tipo_rota=(rotaNum2>=1&&rotaNum2<=88)?'URBANO':'RURAL';
         ulMap[ul]={mes_ref:mesRef,ul,rz,local_cod:lc,base:map.base||null,cidade:map.cidade||null,
-          tipo,leituras_exec:leit_exec,solicit,realiz,n_exec};
+          tipo,leituras_exec:leit_exec,solicit,realiz,n_exec,tipo_rota};
       }
     }
 
