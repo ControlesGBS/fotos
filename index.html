@@ -389,6 +389,20 @@ function renderTabela(dados){
 }
 
 // ── ADMIN ──
+const CICLO_FOTOS={
+  '92':['02','05','08','11'],'93':['02','05','08','11'],'98':['02','05','08','11'],
+  '90':['01','04','07','10'],'91':['01','04','07','10'],'97':['01','04','07','10'],
+  '89':['03','06','09','12'],'94':['03','06','09','12'],'99':['03','06','09','12']
+};
+function estaNoMesFotos(rota, mesNum){
+  const rotaNum=parseInt(rota);
+  if((rotaNum>=1&&rotaNum<=88)||rotaNum===95||rotaNum===96) return true;
+  const sufixo=String(rota).padStart(2,'0');
+  const ciclo=CICLO_FOTOS[sufixo];
+  if(!ciclo) return true;
+  return ciclo.includes(String(mesNum).padStart(2,'0'));
+}
+
 let fileFotos=null;
 function selecionarFotos(inp){
   fileFotos=inp.files[0];
@@ -438,6 +452,9 @@ async function processarFotos(){
       if(!ulMap[ul]||leit_exec>ulMap[ul].leituras_exec){
         const rz=ul.slice(0,2);
         const lc=ul.slice(2,6);
+        const rota=ul.slice(6);
+        const mesNum=parseInt(mesRef.split('-')[1]);
+        if(!estaNoMesFotos(rota, mesNum)) continue; // pular rotas fora do ciclo
         const map=LOCAL_MAP[lc]||{};
         ulMap[ul]={mes_ref:mesRef,ul,rz,local_cod:lc,base:map.base||null,cidade:map.cidade||null,
           tipo,leituras_exec:leit_exec,solicit,realiz,n_exec};
