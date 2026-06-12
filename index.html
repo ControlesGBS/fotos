@@ -308,15 +308,14 @@ function renderGraficos(dados){
     data:{
       labels:basesArr.map(b=>b[0]),
       datasets:[
-        {label:'Solicitadas',data:basesArr.map(b=>b[1].sol),backgroundColor:'rgba(45,122,45,0.7)',borderColor:'#1a4a1a',borderWidth:1},
         {label:'Ñ Exec.',data:basesArr.map(b=>b[1].nexec),backgroundColor:'rgba(220,38,38,0.7)',borderColor:'#991b1b',borderWidth:1}
       ]
     },
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{
-        legend:{position:'top',labels:{font:{size:10}}},
-        datalabels:{anchor:'end',align:'top',font:{size:9},color:'#1a2a1a',
+        legend:{display:false},
+        datalabels:{anchor:'end',align:'top',font:{size:10,weight:'500'},color:'#991b1b',
           formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
       },
       scales:{y:{beginAtZero:true}}
