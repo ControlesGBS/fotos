@@ -194,7 +194,7 @@ const LOCAL_MAP={
   '6641':{'cidade':'NOVA RESENDE','base':'GUAXUPÉ'}
 };
 
-let dadosRaw=[], leituristas={}, chartBase=null, chartLeit=null;
+let dadosRaw=[], leituristas={}, chartBase=null, chartLeit=null, calMap={};
 
 function irPag(id,btn){
   document.querySelectorAll('.pag').forEach(p=>p.classList.remove('ativo'));
@@ -231,6 +231,11 @@ async function carregarMeses(){
 async function carregarDados(){
   const mesRef=document.getElementById('f-mes').value;
   if(!mesRef) return;
+
+  // Buscar calendário do mês
+  const {data:cal}=await sb.from('calendario_leitura').select('rz,data_leitura').eq('mes_ref',mesRef);
+  calMap={};
+  (cal||[]).forEach(r=>{ calMap[r.rz]=r.data_leitura; });
 
   // Buscar fotos
   let fotos=[], from=0;
@@ -294,11 +299,18 @@ function aplicarFiltros(){
   const leit=document.getElementById('f-leit').value;
 
   const tipo=document.getElementById('f-tipo').value;
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
   const filt=dadosRaw.filter(r=>{
     if(base&&r.base!==base) return false;
     if(rz&&r.rz!==rz) return false;
     if(leit&&r.matricula!==leit) return false;
     if(tipo&&r.tipo_rota!==tipo) return false;
+    // Só mostra RZs cuja data de leitura já chegou
+    const dataLim=calMap[r.rz]||null;
+    if(dataLim){
+      const dl=new Date(dataLim+'T12:00:00'); dl.setHours(0,0,0,0);
+      if(dl>hoje) return false;
+    }
     return true;
   });
 
