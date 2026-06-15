@@ -253,15 +253,28 @@ async function carregarDados(){
   let ulLeitAll=[], ulFrom=0;
   while(true){
     const {data:lote}=await sb.from('ul_leiturista').select('ul,matricula')
-      .or(`mes_ref.eq.${mesRef},mes_ref.eq.${mesRefCurto}`)
+      .or(`mes_ref.eq."${mesRef}",mes_ref.eq."${mesRefCurto}"`)
       .range(ulFrom,ulFrom+999);
     if(!lote||!lote.length) break;
     ulLeitAll=ulLeitAll.concat(lote);
     if(lote.length<1000) break;
     ulFrom+=1000;
   }
+  // Fallback: se ul_leiturista vazio, buscar direto na jornada
+  if(!ulLeitAll.length){
+    let jFrom=0;
+    while(true){
+      const {data:lote}=await sb.from('jornada').select('ul,matricula')
+        .or(`mes_ref.eq."${mesRef}",mes_ref.eq."${mesRefCurto}"`)
+        .range(jFrom,jFrom+999);
+      if(!lote||!lote.length) break;
+      ulLeitAll=ulLeitAll.concat(lote);
+      if(lote.length<1000) break;
+      jFrom+=1000;
+    }
+  }
   const ulLeitMap={};
-  ulLeitAll.forEach(r=>{ ulLeitMap[r.ul]=r.matricula; });
+  ulLeitAll.forEach(r=>{ if(r.ul&&r.matricula) ulLeitMap[r.ul]=r.matricula; });
 
   // Buscar nomes das matrículas
   const mats=[...new Set(Object.values(ulLeitMap))];
