@@ -577,7 +577,9 @@ async function dispararFotos(){
     const sup=SUPS_MAP_FOTOS[base.toUpperCase()];
     if(!sup){semSup.push(base);continue;}
 
-    const mesAtual=document.getElementById('f-mes').value;
+    const mesRefVal=document.getElementById('f-mes').value;
+    const [mAno,mMes]=mesRefVal.split('-');
+    const mesAtual=`${mMes}/${mAno}`;
     const ocorrencia=`${nexec.toLocaleString('pt-BR')} foto(s) não executada(s) na base ${base} no mês ${mesAtual}.`;
 
     const {data:trat}=await sb.from('tratativas').insert({
