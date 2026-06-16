@@ -3,553 +3,1751 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Acompanhamento de Fotos — GBS Serviços</title>
+<title>Jornada & Performance — GBS Serviços</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f4f6f4;color:#1a2a1a;font-size:13px;overflow:hidden}
+body{font-family:system-ui,sans-serif;background:#f4f6f4;color:#1a2a1a;font-size:14px}
 .hdr{background:#1a4a1a;color:#fff;padding:10px 20px;display:flex;align-items:center;gap:12px}
-.hdr img{height:36px}
+.hdr img{height:36px;width:auto}
 .hdr-title{font-size:16px;font-weight:500;letter-spacing:.5px;color:#c8e8c8;flex:1;text-align:center}
-.hdr-user{font-size:11px;color:#90c090;margin-right:8px}
-.btn-sair{background:none;border:1px solid #4a7a4a;color:#c8e8c8;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px}
 .nav{display:flex;gap:2px;background:#0f2e0f;padding:6px 20px}
 .nav button{background:none;border:none;color:#90c090;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:13px}
 .nav button.ativo{background:#2d7a2d;color:#fff}
 .nav button:hover:not(.ativo){background:#1a4a1a}
-.pag{display:none;padding:16px 20px}
+.pag{display:none}
 .pag.ativo{display:block}
 .filtros{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;padding:12px 16px;margin-bottom:10px}
-.filtros label{font-size:11px;color:#4a7a4a;display:block;margin-bottom:3px}
+.filtros label{font-size:17px;color:#4a7a4a;display:block;margin-bottom:3px;font-weight:500}
 .filtros select{border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:13px;background:#f8fbf8;color:#1a2a1a;height:30px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;max-width:600px}
+.slicer-box{display:flex;align-items:center;gap:6px;background:#f0f8f0;border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 10px;height:30px}
+.slicer-box label{color:#4a7a4a;font-size:17px;white-space:nowrap;margin:0;font-weight:500}
+.slicer-box span{color:#1a4a1a;font-size:13px;font-weight:500;min-width:40px}
+.slicer-box input[type=range]{height:20px;width:80px;accent-color:#2d7a2d}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px}
 .kpi{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;padding:10px 14px;text-align:center}
 .kpi-label{font-size:10px;color:#4a7a4a;text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px}
 .kpi-value{font-size:22px;font-weight:500;color:#1a4a1a}
-.kpi-value.alerta{color:#dc2626}
-.kpi-value.ok{color:#16a34a}
-.graficos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.grafico-box{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;padding:12px}
-.grafico-box h3{font-size:11px;color:#4a7a4a;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;text-align:center}
-.grafico-box canvas{max-height:220px}
-.secao{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;overflow:hidden;margin-bottom:10px}
-.secao-hdr{background:#1a4a1a;color:#c0e8c0;padding:10px 14px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.secao-hdr span{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.secao-body{overflow-x:auto;max-height:calc(100vh - 460px);overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:6px 8px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:1}
+
+/* PAINEL CONGELADO */
+.painel-inner{display:flex;flex-direction:column;height:calc(100vh - 88px);overflow:hidden}
+.painel-topo{flex-shrink:0;padding:12px 20px 0;background:#f4f6f4}
+.painel-tabela{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:0 20px 12px;min-height:0}
+.twrap{flex:1;border-radius:8px;border:0.5px solid #c0dcc0;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.twrap-hdr{background:#1a4a1a;border-radius:8px 8px 0 0;padding:8px 16px;flex-shrink:0}
+.twrap-hdr span{color:#c0e8c0;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.tabela-scroll{flex:1;overflow-y:auto;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:18px}
+thead th{background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:10px 18px;text-align:center;font-size:18px;white-space:nowrap;border-right:0.5px solid #2d6a2d;position:sticky;top:0;z-index:1}
 tbody tr:nth-child(even){background:#f8fbf8}
-tbody tr:hover{background:#e8f4e8}
-tbody td{padding:5px 8px;text-align:center;border-bottom:0.5px solid #e0eee0;color:#1a2a1a}
-td.left{text-align:left}
-.pct-ok{color:#16a34a;font-weight:500}
-.pct-med{color:#d97706;font-weight:500}
-.pct-ruim{color:#dc2626;font-weight:500}
-.rodape-tabela{padding:8px 12px;font-size:12px;color:#4a7a4a;border-top:0.5px solid #e0eee0}
-/* Admin */
-.upload-box{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;padding:16px;max-width:400px}
-.upload-box h3{font-size:13px;font-weight:500;color:#1a4a1a;margin-bottom:6px}
-.upload-box p{font-size:11px;color:#4a7a4a;margin-bottom:10px}
-.drop-area{border:1.5px dashed #a0c8a0;border-radius:6px;padding:20px;text-align:center;cursor:pointer;background:#f8fbf8;margin-bottom:10px}
-.drop-area:hover{background:#f0f8f0;border-color:#2d7a2d}
-.drop-area .icone{font-size:28px;margin-bottom:6px}
-.drop-area p{font-size:12px;color:#4a7a4a}
-.btn{background:#2d7a2d;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;width:100%}
-.btn:hover{background:#1a5a1a}
-.btn:disabled{background:#90c090;cursor:not-allowed}
-.progresso{font-size:12px;color:#4a7a4a;margin-top:8px;min-height:18px}
-.progresso.ok{color:#16a34a}
-.progresso.erro{color:#dc2626}
+tbody tr.sem-trab td{color:#aaa}
+tbody td{color:#1a2a1a;padding:10px 18px;text-align:center;border-bottom:0.5px solid #c8e0c8;border-right:0.5px solid #e8f4e8;font-size:18px}
+td.rota-col{text-align:left;font-size:14px}
+.badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:13px;font-weight:500;margin:1px 2px;white-space:nowrap}
+.b-urb{background:#e6f1fb;color:#0c447c}
+.b-rur{background:#eaf3de;color:#27500a}
+.b-loc{background:#faeeda;color:#633806}
+.b-gd{background:#eeedfe;color:#3c3489}
+.b-irr{background:#fbeaf0;color:#72243e}
+.totais{display:flex;gap:20px;padding:8px 14px;background:#f0f8f0;border-top:0.5px solid #c0dcc0;font-size:13px;font-weight:500;color:#1a4a1a;border-radius:0 0 8px 8px;flex-wrap:wrap;flex-shrink:0}
+.totais span{color:#4a7a4a;font-weight:400;margin-right:3px}
+.status-msg{padding:20px;text-align:center;color:#4a7a4a;font-size:13px}
+
+/* RANKING */
+.ranking-inner{display:flex;flex-direction:column;height:calc(100vh - 88px);overflow:hidden}
+.ranking-topo{flex-shrink:0;padding:12px 20px 0;background:#f4f6f4}
+.ranking-scroll{flex:1;overflow-y:auto;padding:0 20px 16px}
+.rank-card{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;overflow:hidden}
+.rank-card-hdr{background:#1a4a1a;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+.rank-card-hdr span{color:#c0e8c0;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.b-critico{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:500;background:#fcebeb;color:#791f1f}
+.b-atencao{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:500;background:#faeeda;color:#633806}
+.b-normal{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:500;background:#eaf3de;color:#27500a}
+.bar-row{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:0.5px solid #e8f4e8}
+.bar-row:last-child{border-bottom:none}
+.bar-rank{width:30px;font-size:14px;color:#4a7a4a;font-weight:500;flex-shrink:0;text-align:right}
+.bar-name{width:90px;font-size:15px;color:#1a2a1a;flex-shrink:0;font-weight:500}
+.bar-track{flex:1;background:#e8f4e8;border-radius:4px;height:24px;overflow:hidden}
+.bar-fill{height:100%;background:rgba(45,122,45,0.75);border-radius:4px;display:flex;align-items:center;padding-left:10px;min-width:60px}
+.bar-val{font-size:13px;font-weight:500;color:#1a4a1a;white-space:nowrap}
+
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px}
+.card-cemig-wrap{display:flex;gap:12px;align-items:flex-start}
+.card-cemig-wrap .card{flex:1;min-width:0}
+.log-uploads{background:#fff;border:0.5px solid #c0dcc0;border-radius:10px;padding:14px;width:220px;flex-shrink:0}
+.log-uploads h4{font-size:12px;font-weight:500;color:#1a4a1a;margin-bottom:8px}
+.log-scroll{max-height:220px;overflow-y:auto;font-size:11px}
+.log-scroll::-webkit-scrollbar{width:4px}
+.log-scroll::-webkit-scrollbar-thumb{background:#a0c8a0;border-radius:2px}
+.log-item{padding:4px 0;border-bottom:0.5px solid #e8f4e8;color:#1a2a1a;line-height:1.4}
+.log-item:last-child{border-bottom:none}
+.log-item .log-nome{font-weight:500;word-break:break-all}
+.log-item .log-dt{color:#4a7a4a;font-size:10px}
+.log-vazio{color:#4a7a4a;font-size:11px;font-style:italic}
+.card{background:#fff;border:0.5px solid #c0dcc0;border-radius:10px;padding:20px}
+.card h3{font-size:14px;font-weight:500;color:#1a4a1a;margin-bottom:4px}
+.card p{font-size:12px;color:#4a7a4a;margin-bottom:14px;line-height:1.5}
+.upload-area{border:1.5px dashed #90c090;border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:background .15s;display:block}
+.upload-area:hover{background:#f0f8f0}
+.upload-area input{display:none}
+.upload-area .icone{font-size:28px;margin-bottom:6px;color:#2d7a2d}
+.upload-area p{margin:0;font-size:12px;color:#4a7a4a}
+.btn{display:inline-block;padding:8px 20px;border-radius:6px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.btn-verde{background:#2d7a2d;color:#fff}
+.btn-verde:hover{background:#1a5a1a}
+.btn-verde:disabled{background:#90c090;cursor:not-allowed}
+.progresso{margin-top:12px;font-size:12px;color:#1a4a1a;min-height:18px}
+.progresso.erro{color:#a32d2d}
+.progresso.ok{color:#2d7a2d}
+.tag-arquivo{display:inline-flex;align-items:center;gap:6px;background:#f0f8f0;border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 10px;font-size:12px;color:#1a4a1a;margin-top:8px}
+.rank-box-title{background:#1a4a1a;color:#c0e8c0;padding:8px 14px;font-size:12px;font-weight:500}
+.rank-table{width:100%;border-collapse:collapse;font-size:12px}
+.rank-table thead th{background:#2d5a2d;color:#c0e8c0;padding:6px 10px;text-align:left;font-size:11px;font-weight:500}
+.rank-table thead th:last-child{text-align:right}
+.rank-table tbody td{padding:6px 10px;border-bottom:0.5px solid #e8f4e8;color:#1a2a1a}
+.rank-table tbody td:last-child{text-align:right;font-weight:500}
+.rank-table tbody tr:nth-child(even){background:#f8fbf8}
+.rank-num{color:#4a7a4a;font-size:11px;width:24px;display:inline-block}
+.rank-top{color:#1a4a1a;font-weight:500}
+.filtros-rank{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;padding:12px 16px;margin-bottom:12px}
+.filtros-rank label{font-size:11px;color:#4a7a4a;display:block;margin-bottom:3px}
+.filtros-rank select{border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:13px;background:#f8fbf8;color:#1a2a1a;height:30px}
+.alerta-lista{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;overflow:hidden;margin-top:12px}
+.alerta-lista-title{background:#1a4a1a;color:#c0e8c0;padding:8px 14px;font-size:12px;font-weight:500}
+.alerta-item-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:0.5px solid #e8f4e8;font-size:12px}
+.alerta-item-row:last-child{border-bottom:none}
+.alerta-item-row.par{background:#f8fbf8}
+.alerta-mat{font-weight:500;color:#1a4a1a;min-width:200px}
+.alerta-hora{color:#a32d2d;font-weight:500;min-width:60px}
+.alerta-bar-wrap{flex:1;background:#f0f4f0;border-radius:3px;height:8px;overflow:hidden}
+.alerta-bar{height:100%;border-radius:3px;background:#e24b4a}
+.meta-box{background:#fff;border:0.5px solid #c0dcc0;border-radius:8px;overflow:hidden;margin-top:12px}
+.meta-box-title{background:#1a4a1a;color:#c0e8c0;padding:8px 14px;font-size:12px;font-weight:500}
+.meta-row{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:0.5px solid #e8f4e8;font-size:12px}
+.meta-row:last-child{border-bottom:none}
+.meta-row.par{background:#f8fbf8}
+.meta-mat{font-weight:500;color:#1a4a1a;min-width:200px}
+.meta-val{color:#a32d2d;font-weight:500;min-width:50px;text-align:right}
+.meta-ref{color:#4a7a4a;font-size:11px}
+.input-meta{border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:13px;background:#f8fbf8;color:#1a2a1a;height:30px;width:90px}
+.badge-urb{background:#e6f1fb;color:#0c447c;display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:500}
+.badge-rur{background:#eaf3de;color:#27500a;display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:500}
+.vazio-msg{padding:16px 14px;color:#4a7a4a;font-size:12px;font-style:italic}
 </style>
 </head>
 <body>
+
 <div class="hdr">
-  <img src="../jornada/logo_gbs.png" alt="GBS" onerror="this.style.display='none'">
-  <div class="hdr-title">ACOMPANHAMENTO DE FOTOS</div>
-  <span class="hdr-user" id="hdr-user"></span>
-  <button class="btn-sair" onclick="sair()">Sair</button>
+  <img src="logo_gbs.png" alt="GBS" onerror="this.style.display='none'">
+  <div class="hdr-title">JORNADA &amp; PERFORMANCE</div>
+  <span id="user-info" style="font-size:12px;color:#90c090"></span>
+  <button onclick="sair()" style="background:none;border:0.5px solid #4a7a4a;color:#90c090;padding:4px 12px;border-radius:5px;cursor:pointer;font-size:12px;margin-left:8px">Sair</button>
 </div>
+
 <div class="nav">
   <button onclick="location.href='https://gbsservicos.com/controles/teste/index.html'" title="Voltar ao Portal" style="font-size:16px;padding:6px 12px">🏠</button>
-  <button class="ativo" onclick="irPag('painel',this)">Painel</button>
-  <button onclick="irPag('admin',this)">Administração</button>
+  <button class="ativo" onclick="irPara('painel',this)">Painel de jornada</button>
+  <button onclick="irPara('alerta-horario',this)">Alerta de horário</button>
+  <button onclick="irPara('ranking',this)">Ranking de leituras</button>
+  <button onclick="irPara('admin',this)">Administração</button>
 </div>
 
 <!-- PAINEL -->
 <div class="pag ativo" id="pag-painel">
-  <div class="filtros">
-    <div><label>Mês/Ano</label>
-      <select id="f-mes" onchange="carregarDados()"><option value="">-- selecione --</option></select>
+<div class="painel-inner">
+  <div class="painel-topo">
+    <div class="filtros">
+      <div><label>Mês/Ano</label><select id="f-mes" onchange="carregarDados()"></select></div>
+      <div><label>Base</label><select id="f-base" onchange="carregarMatriculas()"><option value="">Todas</option></select></div>
+      <div><label>Matrícula / Leiturista</label><select id="f-mat" onchange="carregarDados()"><option value="">— selecione —</option></select></div>
+      <div class="slicer-box">
+        <label>Intervalo a partir de</label>
+        <input type="range" id="slicer" min="5" max="60" value="10" step="1"
+               oninput="document.getElementById('sv').textContent=this.value+' min';renderTabela()">
+        <span id="sv">10 min</span>
+      </div>
     </div>
-    <div><label>Base</label>
-      <select id="f-base" onchange="aplicarFiltros()"><option value="">Todas</option></select>
-    </div>
-    <div><label>RZ</label>
-      <select id="f-rz" onchange="aplicarFiltros()"><option value="">Todos</option></select>
-    </div>
-    <div><label>Leiturista</label>
-      <select id="f-leit" onchange="aplicarFiltros()"><option value="">Todos</option></select>
-    </div>
-    <div><label>Tipo</label>
-      <select id="f-tipo" onchange="aplicarFiltros()">
-        <option value="">Todos</option>
-        <option value="URBANO">Urbano (01-88)</option>
-        <option value="RURAL">Rural (89-99)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="kpis">
-    <div class="kpi"><div class="kpi-label">Fotos Solicitadas</div><div class="kpi-value" id="kpi-sol">—</div></div>
-    <div class="kpi"><div class="kpi-label">Fotos Ñ Executadas</div><div class="kpi-value alerta" id="kpi-nexec">—</div></div>
-    <div class="kpi"><div class="kpi-label">Taxa Ñ Executada</div><div class="kpi-value alerta" id="kpi-taxa">—</div></div>
-  </div>
-
-  <div class="graficos">
-    <div class="grafico-box">
-      <h3>Quantidades por Base</h3>
-      <canvas id="chart-base"></canvas>
-    </div>
-    <div class="grafico-box">
-      <h3>Fotos Ñ Exec. por Leiturista (Top 15)</h3>
-      <canvas id="chart-leit"></canvas>
+    <div class="kpis" id="kpis">
+      <div class="kpi"><div class="kpi-label">Dias trabalhados</div><div class="kpi-value">—</div></div>
+      <div class="kpi"><div class="kpi-label">Média horas trabalhadas</div><div class="kpi-value">—</div></div>
+      <div class="kpi"><div class="kpi-label">Média início trabalho</div><div class="kpi-value">—</div></div>
+      <div class="kpi"><div class="kpi-label">Média de leituras</div><div class="kpi-value">—</div></div>
+      <div class="kpi"><div class="kpi-label">Total de leituras</div><div class="kpi-value">—</div></div>
+      <div class="kpi"><div class="kpi-label">Impedimentos GBS</div><div class="kpi-value">—</div></div>
     </div>
   </div>
-
-  <!-- Tabela detalhada -->
-  <div class="secao">
-    <div class="secao-hdr">
-      <span>&#9776; Detalhamento por UL / Leiturista</span>
+  <div class="painel-tabela">
+    <div class="twrap">
+      <div class="twrap-hdr"><span>☰ Jornada detalhada</span></div>
+      <div class="tabela-scroll">
+        <table>
+          <thead><tr>
+            <th>Mat.</th>
+            <th>RZ</th>
+            <th>Dia</th>
+            <th>Sem.</th>
+            <th>H. inicial</th>
+            <th>H. final</th>
+            <th>Intervalo</th>
+            <th>H. trab.</th>
+            <th>Leituras</th>
+            <th>Imp. GBS</th>
+            <th>Imp. CEMIG</th>
+            <th>Total imp.</th>
+            <th>Tipo rota (local)</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="totais" id="totais"><span style="color:#4a7a4a">Selecione matrícula e mês</span></div>
     </div>
-    <div class="secao-body">
-      <table>
+  </div>
+</div>
+</div>
+
+<!-- RANKING -->
+<div class="pag" id="pag-ranking">
+<div class="ranking-inner">
+  <div class="ranking-topo">
+    <div class="filtros">
+      <div><label>Mês/Ano</label><select id="rk-mes" onchange="carregarRanking()"></select></div>
+      <div><label>Base</label><select id="rk-base" onchange="carregarRanking()"><option value="">Todas as bases</option></select></div>
+    </div>
+    <div class="rank-card-hdr" style="border-radius:8px 8px 0 0;margin:0 0 0 0"><span>☰ Ranking de leituras — todos os leituristas</span></div>
+  </div>
+  <div class="ranking-scroll" style="padding-top:0">
+    <div style="border:0.5px solid #c0dcc0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;background:#fff">
+      <div id="rk-bars"><div class="status-msg">Selecione o mês.</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ALERTA DE HORÁRIO -->
+<div class="pag" id="pag-alerta-horario">
+<div class="ranking-inner">
+  <div class="ranking-topo">
+    <div class="filtros">
+      <div><label>Mês/Ano</label><select id="ah-mes" onchange="carregarAlertaHorario()"></select></div>
+      <div><label>Base</label><select id="ah-base" onchange="carregarAlertaHorario()"><option value="">Todas</option></select></div>
+      <div><label>Hora mínima (início)</label><input type="time" id="ah-min" value="07:30" onchange="carregarAlertaHorario()" style="border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:13px;background:#f8fbf8;color:#1a2a1a;height:30px"></div>
+      <div><label>Hora máxima (fim)</label><input type="time" id="ah-max" value="17:30" onchange="carregarAlertaHorario()" style="border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:13px;background:#f8fbf8;color:#1a2a1a;height:30px"></div>
+      <div>
+        <label>Status</label>
+        <select id="ah-status" onchange="filtrarAlertaHorario()" style="border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:13px;background:#f8fbf8;color:#1a2a1a;height:30px">
+          <option value="">Todos</option>
+          <option value="critico">Crítico</option>
+          <option value="atencao">Atenção</option>
+          <option value="normal">Normal</option>
+        </select>
+      </div>
+    </div>
+    <div class="kpis" id="ah-kpis" style="margin-bottom:10px">
+      <div class="kpi"><div class="kpi-label">Em alerta</div><div class="kpi-value" style="color:#a32d2d">—</div></div>
+      <div class="kpi"><div class="kpi-label">Dias início cedo</div><div class="kpi-value" style="color:#854f0b">—</div></div>
+      <div class="kpi"><div class="kpi-label">Dias término tardio</div><div class="kpi-value" style="color:#a32d2d">—</div></div>
+    </div>
+    <!-- Faixa verde congelada -->
+    <div class="rank-card-hdr" style="border-radius:8px 8px 0 0">
+      <span>☰ Resumo por leiturista</span>
+      <span id="ah-count" style="font-size:11px;color:#90c090"></span>
+    </div>
+    <div style="background:#1a4a1a;overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+        <colgroup>
+          <col style="width:110px"><col style="width:90px"><col style="width:180px">
+          <col style="width:110px"><col style="width:120px"><col style="width:120px">
+          <col style="width:120px"><col style="width:90px">
+        </colgroup>
         <thead><tr>
-          <th>UL</th><th>RZ</th><th>Tipo</th><th>Leiturista</th><th>Nome</th><th>Base</th>
-          <th>Solicitadas</th><th>Realizadas</th><th>Ñ Executadas</th><th>Taxa Ñ Exec.</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:left;white-space:nowrap;border-right:0.5px solid #2d6a2d">Base</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:left;white-space:nowrap;border-right:0.5px solid #2d6a2d">Matrícula</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:left;white-space:nowrap;border-right:0.5px solid #2d6a2d">Nome</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:center;white-space:nowrap;border-right:0.5px solid #2d6a2d">Início cedo</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:center;white-space:nowrap;border-right:0.5px solid #2d6a2d">Término tardio</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:center;white-space:nowrap;border-right:0.5px solid #2d6a2d">Hora mais cedo</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:center;white-space:nowrap;border-right:0.5px solid #2d6a2d">Hora mais tarde</th>
+          <th style="background:#1a4a1a;color:#c0e8c0;font-weight:500;padding:8px 14px;text-align:center;white-space:nowrap">Status</th>
         </tr></thead>
-        <tbody id="tbody-fotos"></tbody>
       </table>
     </div>
-    <div class="rodape-tabela" id="rodape-fotos">0 ULs</div>
   </div>
+  <div class="ranking-scroll" style="padding:0 20px 16px;padding-top:0">
+    <div style="border:0.5px solid #c0dcc0;border-top:none;border-radius:0 0 8px 8px;overflow-x:auto;background:#fff">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+        <colgroup>
+          <col style="width:110px"><col style="width:90px"><col style="width:180px">
+          <col style="width:110px"><col style="width:120px"><col style="width:120px">
+          <col style="width:120px"><col style="width:90px">
+        </colgroup>
+        <tbody id="ah-tbody"><tr><td colspan="8" class="status-msg">Selecione o mês.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- ADMIN -->
-<div class="pag" id="pag-admin">
-  <div class="upload-box">
-    <h3>📷 Relatório de Fotos</h3>
-    <p>Arquivo de fotos da Cemig. Substitui todos os dados do mês.</p>
-    <label class="drop-area" for="inp-fotos">
-      <div class="icone">📂</div>
-      <p id="tag-fotos">Clique ou arraste o arquivo xlsx</p>
-    </label>
-    <input type="file" accept=".xlsx" id="inp-fotos" style="display:none" onchange="selecionarFotos(this)">
-    <button class="btn" id="btn-fotos" onclick="processarFotos()" disabled>Processar e salvar</button>
-    <div class="progresso" id="prog-fotos"></div>
+<div class="pag" id="pag-admin" style="padding:16px 20px">
+  <div class="admin-grid">
+    <div class="card-cemig-wrap" style="grid-column:1/2">
+      <div class="card">
+        <h3>Upload — arquivo cru da Cemig</h3>
+        <p>Sobe o xlsx da Cemig (um RZ por arquivo). O sistema processa no navegador e alimenta <strong>todos os relatórios</strong> — jornada, impedimentos, transmissões. Se aquele RZ+período já existir, substitui.</p>
+        <label class="upload-area">
+          <input type="file" accept=".xlsx" id="inp-cemig" onchange="selecionarCemig(this)">
+          <div class="icone">&#8593;</div>
+          <p>Clique ou arraste o arquivo xlsx</p>
+        </label>
+        <div id="tag-cemig"></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-verde" id="btn-cemig" onclick="processarCemig()" disabled>Processar e salvar</button>
+        </div>
+        <div class="progresso" id="prog-cemig"></div>
+      </div>
+      <div class="log-uploads">
+        <h4>Últimos uploads</h4>
+        <div class="log-scroll" id="log-uploads-lista">
+          <span class="log-vazio">Nenhum upload ainda.</span>
+        </div>
+        <div style="margin-top:12px;border-top:0.5px solid #c0dcc0;padding-top:12px">
+          <div style="font-size:11px;color:#4a7a4a;margin-bottom:6px">Verificar gatilhos de impedimentos:</div>
+          <select id="gat-mes" style="width:100%;border:0.5px solid #a0c8a0;border-radius:5px;padding:4px 8px;font-size:12px;background:#f8fbf8;color:#1a2a1a;height:28px;margin-bottom:6px">
+            <option value="">Selecione o mês...</option>
+          </select>
+          <button id="btn-gatilho" onclick="rodarGatilhosImpedimentos()" style="width:100%;background:#2d7a2d;color:#fff;border:none;border-radius:5px;padding:6px;font-size:12px;font-weight:500;cursor:pointer">🔔 Verificar gatilhos</button>
+          <div id="prog-gatilho" style="font-size:11px;margin-top:6px;min-height:14px;color:#4a7a4a"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Atualizar matrículas</h3>
+      <p>Sobe o MATRICULAS.xlsx atualizado. Substitui toda a tabela — use ao contratar ou demitir.</p>
+      <label class="upload-area">
+        <input type="file" accept=".xlsx" id="inp-mat" onchange="selecionarMat(this)">
+        <div class="icone">&#8593;</div>
+        <p>Clique ou arraste o MATRICULAS.xlsx</p>
+      </label>
+      <div id="tag-mat"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-verde" id="btn-mat" onclick="processarMatriculas()" disabled>Salvar matrículas</button>
+      </div>
+      <div class="progresso" id="prog-mat"></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h3>Upload em lote — vários arquivos da Cemig</h3>
+      <p>Selecione múltiplos arquivos xlsx de uma vez. O sistema processa um por um na sequência.</p>
+      <label class="upload-area">
+        <input type="file" accept=".xlsx" id="inp-lote" multiple onchange="selecionarLote(this)">
+        <div class="icone">&#8593;</div>
+        <p>Clique ou arraste vários arquivos xlsx</p>
+      </label>
+      <div id="tag-lote" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-verde" id="btn-lote" onclick="processarLote()" disabled>Processar todos</button>
+      </div>
+      <div class="progresso" id="prog-lote"></div>
+      <div id="lote-lista" style="margin-top:10px;font-size:12px;display:none">
+        <div style="font-weight:500;color:#1a4a1a;margin-bottom:6px">Progresso dos arquivos:</div>
+        <div id="lote-itens"></div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1;background:#fff8e6;border-color:#fac775" id="card-fechar-mes">
+      <h3 style="color:#633806">Fechar mês — Meta de leituras e Início tardio</h3>
+      <p style="color:#854f0b">Calcula a média do mês selecionado e dispara emails de tratativa para os supervisores quando necessário.</p>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:11px;color:#854f0b;display:block;margin-bottom:3px">Mês a fechar</label>
+          <select id="fechar-mes-sel" style="border:0.5px solid #fac775;border-radius:5px;padding:4px 8px;font-size:13px;background:#fffdf5;color:#633806;height:30px"></select>
+        </div>
+        <button class="btn" style="background:#ba7517;margin-top:16px" id="btn-fechar-mes" onclick="fecharMes()">Fechar mês</button>
+        <div class="progresso" id="prog-fechar-mes" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h3>Configurações de tratativas</h3>
+      <p>Defina os gatilhos que disparam emails de tratativa para os supervisores.</p>
+      <div style="margin-top:10px">
+        <a href="../tratativas/index.html" class="btn btn-verde" style="display:inline-block;text-decoration:none">Abrir configurações de tratativas</a>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h3>Tabela local &rarr; base (fixa)</h3>
+      <p>Tabela já carregada com <strong id="qtd-locais">—</strong> locais. Só atualize se a Cemig incluir novas cidades.</p>
+      <label class="upload-area">
+        <input type="file" accept=".xlsx" id="inp-local" onchange="selecionarLocal(this)">
+        <div class="icone">&#8593;</div>
+        <p>Clique ou arraste o TabelaLocalBase.xlsx</p>
+      </label>
+      <div id="tag-local"></div>
+      <div style="margin-top:12px">
+        <button class="btn btn-verde" id="btn-local" onclick="processarLocal()" disabled>Atualizar tabela de locais</button>
+      </div>
+      <div class="progresso" id="prog-local"></div>
+    </div>
   </div>
 </div>
 
 <script>
-Chart.register(ChartDataLabels);
+const SUPABASE_URL = 'https://ndwivbhqglpnfyqwjbzu.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_IhuNziyT5VYrMKRixcPGjA_LAn5ku-7';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SEMANAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
-const SUPABASE_URL='https://ndwivbhqglpnfyqwjbzu.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kd2l2YmhxZ2xwbmZ5cXdqYnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjMwNzksImV4cCI6MjA5NTk5OTA3OX0.uYzp_BlsQlgMp48k10gpSQdBReXJToGuVAkh38i3ABg';
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+// dados carregados do banco para o mês selecionado
+let dadosMes = [];
+let localMap = {};
 
-const LOCAL_MAP={
-  '1967':{'cidade':'SÃO JOSÉ DA BARRA','base':'PASSOS'},
-  '3301':{'cidade':'PASSOS','base':'PASSOS'},'3302':{'cidade':'ITAÚ DE MINAS','base':'PASSOS'},
-  '3303':{'cidade':'JACUÍ','base':'SSP'},'3304':{'cidade':'FORTALEZA DE MINAS','base':'PASSOS'},
-  '3305':{'cidade':'SÃO JOÃO BATISTA DO GLÓRIA','base':'PASSOS'},
-  '3308':{'cidade':'SÃO SEBASTIÃO DO PARAÍSO','base':'SSP'},'3309':{'cidade':'PRATÁPOLIS','base':'SSP'},
-  '3310':{'cidade':'SÃO TOMÁS DE AQUINO','base':'SSP'},'3312':{'cidade':'CÁSSIA','base':'SSP'},
-  '3313':{'cidade':'CAPETINGA','base':'SSP'},'3314':{'cidade':'ALPINÓPOLIS','base':'PASSOS'},
-  '3316':{'cidade':'CARMO DO RIO CLARO','base':'PASSOS'},'3318':{'cidade':'BOM JESUS DA PENHA','base':'GUAXUPÉ'},
-  '3319':{'cidade':'CLARAVAL','base':'SSP'},'3320':{'cidade':'DELFINÓPOLIS','base':'SSP'},
-  '3321':{'cidade':'GUARANÉSIA','base':'GUAXUPÉ'},'3322':{'cidade':'GUAXUPÉ','base':'GUAXUPÉ'},
-  '3323':{'cidade':'IBIRACI','base':'SSP'},'3325':{'cidade':'JURUAIA','base':'GUAXUPÉ'},
-  '3327':{'cidade':'SÃO PEDRO DA UNIÃO','base':'GUAXUPÉ'},'3350':{'cidade':'CÓRREGO DO OURO','base':'PASSOS'},
-  '6147':{'cidade':'CONCEIÇÃO DA APARECIDA','base':'PASSOS'},'6149':{'cidade':'MONTE BELO','base':'GUAXUPÉ'},
-  '6150':{'cidade':'MUZAMBINHO','base':'GUAXUPÉ'},'6424':{'cidade':'SANTA RITA DO SAPUCAÍ','base':'POUSO ALEGRE'},
-  '6425':{'cidade':'CACHOEIRA DE MINAS','base':'POUSO ALEGRE'},'6426':{'cidade':'CONCEIÇÃO DOS OUROS','base':'POUSO ALEGRE'},
-  '6501':{'cidade':'POUSO ALEGRE','base':'POUSO ALEGRE'},'6502':{'cidade':'BORDA DA MATA','base':'OURO FINO'},
-  '6504':{'cidade':'CONGONHAL','base':'POUSO ALEGRE'},'6507':{'cidade':'SÃO SEBASTIÃO DA BELA VISTA','base':'POUSO ALEGRE'},
-  '6508':{'cidade':'IPUIUNA','base':'ANDRADAS'},'6509':{'cidade':'OURO FINO','base':'OURO FINO'},
-  '6510':{'cidade':'INCONFIDENTES','base':'OURO FINO'},'6512':{'cidade':'JACUTINGA','base':'OURO FINO'},
-  '6513':{'cidade':'ALBERTINA','base':'OURO FINO'},'6515':{'cidade':'SANTA RITA DE CALDAS','base':'ANDRADAS'},
-  '6516':{'cidade':'CALDAS','base':'ANDRADAS'},'6517':{'cidade':'IBITIURA DE MINAS','base':'ANDRADAS'},
-  '6519':{'cidade':'MONTE SIÃO','base':'OURO FINO'},'6520':{'cidade':'SENADOR JOSÉ BENTO','base':'POUSO ALEGRE'},
-  '6523':{'cidade':'SILVIANÓPOLIS','base':'POUSO ALEGRE'},'6534':{'cidade':'ESPÍRITO SANTO DO DOURADO','base':'POUSO ALEGRE'},
-  '6535':{'cidade':'ANDRADAS','base':'ANDRADAS'},'6536':{'cidade':'BOM REPOUSO','base':'OURO FINO'},
-  '6553':{'cidade':'TOCOS DO MOJI','base':'OURO FINO'},'6601':{'cidade':'ALFENAS','base':'ALFENAS'},
-  '6602':{'cidade':'PARAGUAÇU','base':'ALFENAS'},'6603':{'cidade':'SERRANIA','base':'ALFENAS'},
-  '6604':{'cidade':'ALTEROSA','base':'ALFENAS'},'6605':{'cidade':'AREADO','base':'ALFENAS'},
-  '6606':{'cidade':'DIVISA NOVA','base':'ALFENAS'},'6607':{'cidade':'FAMA','base':'ALFENAS'},
-  '6630':{'cidade':'MACHADO','base':'ALFENAS'},'6631':{'cidade':'POÇO FUNDO','base':'ALFENAS'},
-  '6632':{'cidade':'CARVALHÓPOLIS','base':'ALFENAS'},'6633':{'cidade':'CAMPESTRE','base':'ANDRADAS'},
-  '6634':{'cidade':'BOTELHOS','base':'ANDRADAS'},'6635':{'cidade':'SÃO JOÃO DA MATA','base':'ALFENAS'},
-  '6638':{'cidade':'CABO VERDE','base':'GUAXUPÉ'},'6639':{'cidade':'BANDEIRA DO SUL','base':'ANDRADAS'},
-  '6641':{'cidade':'NOVA RESENDE','base':'GUAXUPÉ'}
-};
-
-let dadosRaw=[], leituristas={}, chartBase=null, chartLeit=null, calMap={};
-
-function irPag(id,btn){
+function irPara(id,btn){
+  if(id==='admin'){
+    const s=prompt('Senha de administração:');
+    if(s!=='Batman1'){if(s!==null)alert('Senha incorreta.');return;}
+    carregarInfoAdmin();
+    renderizarLog();
+  }
   document.querySelectorAll('.pag').forEach(p=>p.classList.remove('ativo'));
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('ativo'));
   document.getElementById('pag-'+id).classList.add('ativo');
   btn.classList.add('ativo');
+  if(id==='ranking') carregarRanking();
+  if(id==='alerta-horario') carregarAlertaHorario();
+}
+async function sair(){ await sb.auth.signOut(); location.reload(); }
+
+// ── FILTROS ──────────────────────────────────────────────────────
+// ── EMAIL ─────────────────────────────────────────────────────────
+async function enviarEmailTratativa(para,assunto,corpo){
+  try{
+    await fetch('https://ndwivbhqglpnfyqwjbzu.supabase.co/functions/v1/enviar-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kd2l2YmhxZ2xwbmZ5cXdqYnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MjMwNzksImV4cCI6MjA5NTk5OTA3OX0.uYzp_BlsQlgMp48k10gpSQdBReXJToGuVAkh38i3ABg'},
+      body:JSON.stringify({para,assunto,corpo})
+    });
+  }catch(e){console.error('Erro email:',e);}
 }
 
-async function sair(){ await sb.auth.signOut(); location.href='../login.html'; }
-
-function pctClass(pct){ if(pct<=10) return 'pct-ok'; if(pct<=30) return 'pct-med'; return 'pct-ruim'; }
-
-async function carregarMeses(){
-  // Buscar todos os registros para pegar meses distintos (pode ter mais de 1000)
-  let allRecs=[], from=0;
-  while(true){
-    const {data:lote}=await sb.from('fotos').select('mes_ref').order('mes_ref',{ascending:false}).range(from,from+999);
-    if(!lote||!lote.length) break;
-    allRecs=allRecs.concat(lote);
-    if(lote.length<1000) break;
-    from+=1000;
-  }
-  const meses=[...new Set(allRecs.map(r=>r.mes_ref))].sort().reverse();
-  const sel=document.getElementById('f-mes');
-  sel.innerHTML='<option value="">-- selecione --</option>';
-  meses.forEach(m=>{
-    const parts=m.split('-');
-    const aa=parts[0], mm=parts[1];
-    sel.innerHTML+=`<option value="${m}">${mm}/${aa}</option>`;
+// ── GATILHOS IMPEDIMENTOS ─────────────────────────────────────────
+async function verificarGatilhosImpedimentos(mesStr, dadosFilt){
+  const [aa,mm]=mesStr.split('-');
+  const mesRef=`${mm}/${aa}`;
+  const {data:cfg}=await sb.from('tratativas_config').select('*').single();
+  if(!cfg||!cfg.impedimentos_ativo||cfg.impedimentos_email_pausado) return;
+  const qtdGatilho=cfg.impedimentos_qtd||10;
+  const contagem={};
+  dadosFilt.forEach(r=>{
+    if(!r.matricula) return;
+    if((r.responsabilidade||'').toUpperCase()!=='GBS') return;
+    const chave=`${r.matricula}|${r.base||''}`;
+    if(!contagem[chave]) contagem[chave]={qtd:0,base:r.base,matricula:r.matricula,nome:r.leiturista||null};
+    contagem[chave].qtd++;
   });
-  if(meses.length){ sel.value=meses[0]; carregarDados(); }
-}
-
-async function carregarDados(){
-  const mesRef=document.getElementById('f-mes').value;
-  if(!mesRef) return;
-
-  // Buscar calendário do mês
-  const {data:cal}=await sb.from('calendario_leitura').select('rz,data_leitura').eq('mes_ref',mesRef);
-  calMap={};
-  (cal||[]).forEach(r=>{ calMap[r.rz]=r.data_leitura; });
-
-  // Buscar fotos
-  let fotos=[], from=0;
-  while(true){
-    const {data:lote}=await sb.from('fotos').select('*').eq('mes_ref',mesRef).range(from,from+999);
-    if(!lote||!lote.length) break;
-    fotos=fotos.concat(lote);
-    if(lote.length<1000) break;
-    from+=1000;
-  }
-
-  // Buscar leituristas — todos os meses, pegar o mais próximo ao mês selecionado
-  let ulLeitAll=[], ulFrom=0;
-  while(true){
-    const {data:lote}=await sb.from('ul_leiturista').select('ul,matricula,mes_ref')
-      .lte('mes_ref', mesRef)
-      .order('mes_ref', {ascending:false})
-      .range(ulFrom,ulFrom+999);
-    if(!lote||!lote.length) break;
-    ulLeitAll=ulLeitAll.concat(lote);
-    if(lote.length<1000) break;
-    ulFrom+=1000;
-  }
-  // Para cada UL, usar o registro do mês mais recente <= mês selecionado
-  const ulLeitMap={};
-  ulLeitAll.forEach(r=>{
-    if(!r.ul||!r.matricula) return;
-    if(!ulLeitMap[r.ul]) ulLeitMap[r.ul]=r.matricula; // já vem ordenado desc, primeiro = mais recente
-  });
-
-  // Buscar nomes das matrículas
-  const mats=[...new Set(Object.values(ulLeitMap))];
-  let nomeMap={};
-  if(mats.length){
-    const {data:matData}=await sb.from('matriculas').select('matricula,nome_leiturista').in('matricula',mats);
-    (matData||[]).forEach(r=>{ nomeMap[r.matricula]=r.nome_leiturista; });
-  }
-
-  // Enriquecer dados
-  dadosRaw=fotos.map(r=>{
-    const mat=ulLeitMap[r.ul]||null;
-    return {...r, matricula:mat, nome:mat?nomeMap[mat]||mat:null};
-  });
-  leituristas=nomeMap;
-
-  // Popular filtros
-  const bases=[...new Set(dadosRaw.map(r=>r.base).filter(Boolean))].sort();
-  const rzs=[...new Set(dadosRaw.map(r=>r.rz).filter(Boolean))].sort();
-  const matsArr=[...new Set(dadosRaw.map(r=>r.matricula).filter(Boolean))].sort();
-
-  const fBase=document.getElementById('f-base');
-  const fRz=document.getElementById('f-rz');
-  const fLeit=document.getElementById('f-leit');
-  const bv=PERFIL_BASE||fBase.value, rv=fRz.value, lv=fLeit.value;
-  if(!PERFIL_BASE){
-    fBase.innerHTML='<option value="">Todas</option>'+bases.map(b=>`<option value="${b}">${b}</option>`).join('');
-  }
-  fRz.innerHTML='<option value="">Todos</option>'+rzs.map(r=>`<option value="${r}">${r}</option>`).join('');
-  fLeit.innerHTML='<option value="">Todos</option>'+matsArr.map(m=>`<option value="${m}">${m}${nomeMap[m]?' — '+nomeMap[m]:''}</option>`).join('');
-  if(bv) fBase.value=bv;
-  if(rv) fRz.value=rv;
-  if(lv) fLeit.value=lv;
-
-  aplicarFiltros();
-}
-
-function aplicarFiltros(){
-  const base=PERFIL_BASE||document.getElementById('f-base').value;
-  const rz=document.getElementById('f-rz').value;
-  const leit=document.getElementById('f-leit').value;
-
-  const tipo=document.getElementById('f-tipo').value;
-  const hoje=new Date(); hoje.setHours(0,0,0,0);
-  const filt=dadosRaw.filter(r=>{
-    if(base&&r.base!==base) return false;
-    if(rz&&r.rz!==rz) return false;
-    if(leit&&r.matricula!==leit) return false;
-    if(tipo&&r.tipo_rota!==tipo) return false;
-    // Só mostra RZs cuja data de leitura já chegou
-    const dataLim=calMap[r.rz]||null;
-    if(dataLim){
-      const dl=new Date(dataLim+'T12:00:00'); dl.setHours(0,0,0,0);
-      if(dl>hoje) return false;
+  for(const [,v] of Object.entries(contagem)){
+    if(v.qtd<qtdGatilho) continue;
+    const multiplos=Math.floor(v.qtd/qtdGatilho);
+    for(let m=1;m<=multiplos;m++){
+      const valorDisp=m*qtdGatilho;
+      const {data:ja}=await sb.from('tratativas_disparos').select('id')
+        .eq('matricula',v.matricula).eq('mes_ref',mesRef).eq('tipo','impedimentos')
+        .eq('valor_disparado',valorDisp).eq('base',v.base||'').single();
+      if(ja) continue;
+      const {data:sup}=await sb.from('usuarios_portal').select('id,nome,email')
+        .eq('base',v.base).eq('perfil','supervisor').eq('ativo',true).single();
+      if(!sup) continue;
+      const prazo=new Date();
+      prazo.setDate(prazo.getDate()+(cfg.prazo_dias||5));
+      const prazoStr=prazo.toLocaleDateString('pt-BR');
+      const prazoDb=prazo.toISOString().split('T')[0];
+      const {data:trat}=await sb.from('tratativas').insert({
+        tipo:'impedimentos',automatica:true,mes_ref:mesRef,
+        matricula:v.matricula,nome_leiturista:v.nome||v.matricula,base:v.base,
+        supervisor_id:sup.id,supervisor_email:sup.email,supervisor_nome:sup.nome,
+        detalhe:`${v.qtd} impedimento(s) GBS em ${mesRef} (gatilho: ${valorDisp})`,
+        prazo_resposta:prazoDb,
+      }).select().single();
+      await sb.from('tratativas_disparos').insert({
+        matricula:v.matricula,mes_ref:mesRef,tipo:'impedimentos',
+        valor_disparado:valorDisp,base:v.base||''
+      });
+      const link=`${location.origin}/controles/tratativas/responder.html?id=${trat?.id}`;
+      await enviarEmailTratativa(sup.email,'Gestão de Controles - Ação atribuída a você',
+        `<div style="font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;color:#1a2a1a">
+          <div style="background:#1a4a1a;padding:14px 20px;border-radius:8px 8px 0 0"><span style="color:#c8e8c8;font-weight:500;font-size:15px">GBS Serviços — Gestão de Controles</span></div>
+          <div style="background:#fff;border:0.5px solid #c0dcc0;padding:20px;border-radius:0 0 8px 8px">
+            <p style="margin-bottom:14px">Olá, <strong>${sup.nome}</strong>!</p>
+            <p style="margin-bottom:14px">Uma ocorrência foi identificada e requer sua atenção.</p>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
+              <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500;width:35%">Base</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${v.base||'—'}</td></tr>
+              <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Tipo</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">Impedimentos GBS</td></tr>
+              <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Ocorrência</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${v.qtd} impedimento(s) — leiturista ${v.nome||v.matricula} — ${mesRef}</td></tr>
+            </table>
+            <p style="margin-bottom:16px">Por favor, registre a tratativa até <strong>${prazoStr}</strong> clicando no botão abaixo.</p>
+            <div style="text-align:center;margin-bottom:20px"><a href="${link}" style="background:#2d7a2d;color:#fff;padding:10px 28px;border-radius:6px;text-decoration:none;font-weight:500;font-size:13px">REGISTRAR TRATATIVA</a></div>
+            <p style="font-size:11px;color:#4a7a4a;border-top:0.5px solid #c0dcc0;padding-top:12px">At.te<br><strong>Gestão de Controles</strong></p>
+          </div>
+        </div>`
+      );
     }
-    return true;
+  }
+}
+
+async function rodarGatilhosImpedimentos(){
+  const mes=document.getElementById('gat-mes').value;
+  const prog=document.getElementById('prog-gatilho');
+  const btn=document.getElementById('btn-gatilho');
+  if(!mes){prog.style.color='#dc2626';prog.textContent='Selecione o mês.';return;}
+  btn.disabled=true;prog.style.color='#4a7a4a';prog.textContent='Buscando impedimentos...';
+  const [mm,aa]=mes.split('/');
+  const mesStr=`${aa}-${mm}`;
+  const dataInicio=`${mesStr}-01`;
+  const diasNoMes=new Date(parseInt(aa),parseInt(mm),0).getDate();
+  const dataFim=`${mesStr}-${String(diasNoMes).padStart(2,'0')}`;
+  let imps=[],_from=0;
+  while(true){
+    const {data:lote}=await sb.from('impedimentos')
+      .select('*').gte('data',dataInicio).lte('data',dataFim).range(_from,_from+999);
+    if(!lote||!lote.length) break;
+    imps=imps.concat(lote);
+    if(lote.length<1000) break;
+    _from+=1000;
+  }
+  const {data:acert}=await sb.from('leituras_acertadas').select('instalacao,reg').eq('mes_ref',mesStr);
+  const acertSet=new Set((acert||[]).map(a=>`${a.instalacao}|${a.reg}`));
+  const dadosFilt=imps.filter(r=>!acertSet.has(`${r.instalacao}|${r.reg}`));
+  prog.textContent=`${dadosFilt.length} impedimentos. Verificando...`;
+  await verificarGatilhosImpedimentos(mesStr,dadosFilt);
+  prog.style.color='#16a34a';prog.textContent='✓ Gatilhos verificados!';
+  btn.disabled=false;
+}
+
+// ── UPLOAD EM LOTE ───────────────────────────────────────────────
+let filesLote = [];
+function selecionarLote(inp){
+  filesLote = Array.from(inp.files);
+  const tag = document.getElementById('tag-lote');
+  tag.innerHTML = filesLote.map(f=>`<div class="tag-arquivo">&#128196; ${f.name}</div>`).join('');
+  document.getElementById('btn-lote').disabled = filesLote.length === 0;
+  document.getElementById('prog-lote').textContent = filesLote.length ? `${filesLote.length} arquivo(s) selecionado(s)` : '';
+}
+
+async function processarLote(){
+  if(!filesLote.length) return;
+  const prog = document.getElementById('prog-lote');
+  const btn = document.getElementById('btn-lote');
+  const listaEl = document.getElementById('lote-lista');
+  const itensEl = document.getElementById('lote-itens');
+  btn.disabled = true;
+  listaEl.style.display = 'block';
+  // Criar itens de status
+  itensEl.innerHTML = filesLote.map((f,i)=>`
+    <div id="lote-item-${i}" style="padding:4px 0;border-bottom:0.5px solid #e8f4e8;display:flex;align-items:center;gap:8px">
+      <span id="lote-icon-${i}" style="font-size:14px">⏳</span>
+      <span style="flex:1;font-size:12px;color:#1a2a1a">${f.name}</span>
+      <span id="lote-status-${i}" style="font-size:11px;color:#4a7a4a">Aguardando...</span>
+    </div>`).join('');
+
+  let ok=0, erro=0;
+  for(let i=0; i<filesLote.length; i++){
+    const f = filesLote[i];
+    prog.className='progresso';
+    prog.textContent = `Processando ${i+1}/${filesLote.length}: ${f.name}`;
+    document.getElementById(`lote-icon-${i}`).textContent = '🔄';
+    document.getElementById(`lote-status-${i}`).textContent = 'Processando...';
+    try {
+      await processarArquivoCemig(f, (msg)=>{
+        document.getElementById(`lote-status-${i}`).textContent = msg;
+      });
+      document.getElementById(`lote-icon-${i}`).textContent = '✅';
+      document.getElementById(`lote-status-${i}`).style.color = '#2d7a2d';
+      ok++;
+    } catch(e) {
+      document.getElementById(`lote-icon-${i}`).textContent = '❌';
+      document.getElementById(`lote-status-${i}`).textContent = 'Erro: ' + e.message;
+      document.getElementById(`lote-status-${i}`).style.color = '#a32d2d';
+      erro++;
+    }
+  }
+  prog.className = erro ? 'progresso erro' : 'progresso ok';
+  prog.textContent = `✓ Concluído: ${ok} processado(s)${erro ? `, ${erro} com erro` : ''}.`;
+  btn.disabled = false;
+}
+
+// ── ALERTA DE HORÁRIO ─────────────────────────────────────────────
+let ahDados = []; // cache para filtro de status
+
+function renderAhTabela(lista){
+  const labelStatus={critico:'Crítico',atencao:'Atenção',normal:'Normal'};
+  const tbody=document.getElementById('ah-tbody');
+  document.getElementById('ah-count').textContent=`${lista.length} leiturista(s)`;
+  if(!lista.length){
+    tbody.innerHTML='<tr><td colspan="8" class="status-msg">Nenhum leiturista encontrado.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=lista.map(d=>{
+    const corCedo=d.cedo>0?'color:#854f0b;font-weight:500':'';
+    const corTarde=d.tarde>0?'color:#a32d2d;font-weight:500':'';
+    return `<tr>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8;font-size:12px">${d.base||'—'}</td>
+      <td style="font-weight:500;padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8">${d.mat}</td>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8;font-size:12px">${d.nome}</td>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8;text-align:center;${corCedo}">${d.cedo} dia(s)</td>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8;text-align:center;${corTarde}">${d.tarde} dia(s)</td>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8;text-align:center;font-family:monospace;${d.horaMaisCedo?'color:#854f0b;font-weight:500':''}">${d.horaMaisCedo||'—'}</td>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;border-right:0.5px solid #e8f4e8;text-align:center;font-family:monospace;${d.horaMaisTarde?'color:#a32d2d;font-weight:500':''}">${d.horaMaisTarde||'—'}</td>
+      <td style="padding:9px 14px;border-bottom:0.5px solid #e0eee0;text-align:center"><span class="b-${d.status}">${labelStatus[d.status]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarAlertaHorario(){
+  const filtro=document.getElementById('ah-status').value;
+  const lista=filtro?ahDados.filter(d=>d.status===filtro):ahDados;
+  renderAhTabela(lista);
+}
+async function carregarAlertaHorario(){
+  const mes=document.getElementById('ah-mes').value;
+  const base=document.getElementById('ah-base').value;
+  const hMin=document.getElementById('ah-min').value||'07:30';
+  const hMax=document.getElementById('ah-max').value||'17:30';
+  const tbody=document.getElementById('ah-tbody');
+  if(!mes){tbody.innerHTML='<tr><td colspan="7" class="status-msg">Selecione o mês.</td></tr>';return;}
+  tbody.innerHTML='<tr><td colspan="7" class="status-msg">Carregando...</td></tr>';
+
+  const [mm,aa]=mes.split('/');
+  const mesRef=`${aa}-${mm}-01`;
+
+  // Buscar matrículas
+  let qMat=sb.from('matriculas').select('matricula,nome_leiturista,base').eq('situacao','Ativo');
+  const baseAh=PERFIL_BASE||base;
+  if(baseAh) qMat=qMat.eq('base',baseAh);
+  const {data:mats}=await qMat;
+  const matMap={};
+  (mats||[]).forEach(r=>matMap[r.matricula]={nome:r.nome_leiturista||r.matricula, base:r.base||'—'});
+  const matsIds=Object.keys(matMap);
+  if(!matsIds.length){tbody.innerHTML='<tr><td colspan="7" class="status-msg">Nenhum leiturista.</td></tr>';return;}
+
+  // Buscar jornada do mês
+  let jornada=[], _from=0;
+  while(true){
+    const {data:lote}=await sb.from('jornada').select('matricula,hora_inicial,hora_final,qtd_leituras')
+      .in('matricula',matsIds).eq('mes_ref',mesRef).range(_from,_from+999);
+    if(!lote||!lote.length) break;
+    jornada=jornada.concat(lote);
+    if(lote.length<1000) break;
+    _from+=1000;
+  }
+
+  // Converter hora para minutos
+  const toMin=h=>{if(!h||!h.includes(':')) return null; const[hh,mi]=h.split(':').map(Number); return hh*60+mi;};
+  const minMin=toMin(hMin), maxMin=toMin(hMax);
+
+  // Agregar por leiturista
+  const acum={};
+  jornada.forEach(r=>{
+    if((r.qtd_leituras||0)<5) return; // ignora dias com poucas leituras
+    const mat=r.matricula;
+    if(!acum[mat]) acum[mat]={cedo:0,tarde:0,horaMaisCedo:null,horaMaisTarde:null};
+    const hi=toMin(r.hora_inicial), hf=toMin(r.hora_final);
+    if(hi!==null && hi<minMin){
+      acum[mat].cedo++;
+      if(!acum[mat].horaMaisCedo||hi<toMin(acum[mat].horaMaisCedo)) acum[mat].horaMaisCedo=r.hora_inicial;
+    }
+    if(hf!==null && hf>maxMin){
+      acum[mat].tarde++;
+      if(!acum[mat].horaMaisTarde||hf>toMin(acum[mat].horaMaisTarde)) acum[mat].horaMaisTarde=r.hora_final;
+    }
   });
+
+  // Calcular status
+  const getStatus=(mat)=>{
+    const d=acum[mat]; if(!d) return 'normal';
+    let critico=false, atencao=false;
+    if(d.horaMaisCedo){
+      const m=toMin(d.horaMaisCedo);
+      if(m<360) critico=true;       // antes 06:00
+      else if(m<420) atencao=true;  // 06:00-06:59
+    }
+    if(d.horaMaisTarde){
+      const m=toMin(d.horaMaisTarde);
+      if(m>1110) critico=true;      // após 18:30
+      else if(m>1080) atencao=true; // 18:00-18:29
+    }
+    return critico?'critico':atencao?'atencao':'normal';
+  };
+
+  // Filtrar só quem tem algum alerta e montar lista com status
+  ahDados = matsIds
+    .filter(m=>acum[m]&&(acum[m].cedo>0||acum[m].tarde>0))
+    .sort((a,b)=>{
+      const ord={critico:0,atencao:1,normal:2};
+      const sa=getStatus(a), sb2=getStatus(b);
+      return (ord[sa]||2)-(ord[sb2]||2)||(acum[b].cedo+acum[b].tarde)-(acum[a].cedo+acum[a].tarde);
+    })
+    .map(mat=>({
+      mat, nome:matMap[mat]?.nome||mat, base:matMap[mat]?.base||'—',
+      cedo:acum[mat].cedo, tarde:acum[mat].tarde,
+      horaMaisCedo:acum[mat].horaMaisCedo, horaMaisTarde:acum[mat].horaMaisTarde,
+      status:getStatus(mat)
+    }));
 
   // KPIs
-  const totSol=filt.reduce((a,r)=>a+(r.solicit||0),0);
-  const totNExec=filt.reduce((a,r)=>a+(r.n_exec||0),0);
-  const taxa=totSol>0?((totNExec/totSol)*100).toFixed(2):0;
-  document.getElementById('kpi-sol').textContent=totSol.toLocaleString('pt-BR');
-  document.getElementById('kpi-nexec').textContent=totNExec.toLocaleString('pt-BR');
-  document.getElementById('kpi-taxa').textContent=`${taxa}%`;
-  document.getElementById('kpi-taxa').className='kpi-value '+(parseFloat(taxa)>10?'alerta':'ok');
-  document.getElementById('kpi-nexec').className='kpi-value '+(totNExec>0?'alerta':'ok');
+  const totalCedo=ahDados.reduce((s,d)=>s+d.cedo,0);
+  const totalTarde=ahDados.reduce((s,d)=>s+d.tarde,0);
+  document.getElementById('ah-kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Em alerta</div><div class="kpi-value" style="color:#a32d2d">${ahDados.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Dias início cedo</div><div class="kpi-value" style="color:#854f0b">${totalCedo}</div></div>
+    <div class="kpi"><div class="kpi-label">Dias término tardio</div><div class="kpi-value" style="color:#a32d2d">${totalTarde}</div></div>`;
 
-  renderGraficos(filt);
-  renderTabela(filt);
+  // Reset filtro de status e renderizar
+  document.getElementById('ah-status').value='';
+  filtrarAlertaHorario();
 }
 
-function renderGraficos(dados){
-  // Por base
-  const porBase={};
-  dados.forEach(r=>{
-    if(!r.base) return;
-    if(!porBase[r.base]) porBase[r.base]={sol:0,nexec:0};
-    porBase[r.base].sol+=r.solicit||0;
-    porBase[r.base].nexec+=r.n_exec||0;
-  });
-  const basesArr=Object.entries(porBase).sort((a,b)=>b[1].nexec-a[1].nexec);
-
-  if(chartBase) chartBase.destroy();
-  chartBase=new Chart(document.getElementById('chart-base'),{
-    type:'bar',
-    data:{
-      labels:basesArr.map(b=>b[0]),
-      datasets:[
-        {label:'Ñ Exec.',data:basesArr.map(b=>b[1].nexec),backgroundColor:'rgba(220,38,38,0.7)',borderColor:'#991b1b',borderWidth:1}
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        datalabels:{anchor:'end',align:'top',font:{size:10,weight:'500'},color:'#991b1b',
-          formatter:v=>v>0?v.toLocaleString('pt-BR'):''}
-      },
-      scales:{y:{beginAtZero:true}}
-    }
-  });
-
-  // Por leiturista (top 15 por n_exec)
-  const porLeit={};
-  dados.forEach(r=>{
-    if(!r.matricula) return;
-    if(!porLeit[r.matricula]) porLeit[r.matricula]={nexec:0,nome:r.nome||r.matricula};
-    porLeit[r.matricula].nexec+=r.n_exec||0;
-  });
-  const leitArr=Object.entries(porLeit).sort((a,b)=>b[1].nexec-a[1].nexec).slice(0,15);
-
-  if(chartLeit) chartLeit.destroy();
-  chartLeit=new Chart(document.getElementById('chart-leit'),{
-    type:'bar',
-    data:{
-      labels:leitArr.map(l=>l[0]),
-      datasets:[{
-        data:leitArr.map(l=>l[1].nexec),
-        backgroundColor:'rgba(220,38,38,0.7)',borderColor:'#991b1b',borderWidth:1
-      }]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{display:false},
-        datalabels:{anchor:'end',align:'top',font:{size:9},color:'#1a2a1a',
-          formatter:v=>v>0?v:''}
-      },
-      scales:{y:{beginAtZero:true}}
-    }
-  });
-}
-
-function renderTabela(dados){
-  // Ordenar por n_exec desc
-  const sorted=[...dados].filter(r=>(r.n_exec||0)>0).sort((a,b)=>a.ul.localeCompare(b.ul));
-  const total=sorted.length;
-
-  document.getElementById('tbody-fotos').innerHTML=sorted.length
-    ?sorted.map(r=>{
-        const pct=r.solicit>0?((r.n_exec/r.solicit)*100).toFixed(1):0;
-        const cls=pctClass(parseFloat(pct));
-        return `<tr>
-          <td class="left">${r.ul}</td>
-          <td>${r.rz}</td>
-          <td>${r.tipo_rota||'—'}</td>
-          <td>${r.matricula||'—'}</td>
-          <td class="left">${r.nome||'—'}</td>
-          <td>${r.base||'—'}</td>
-          <td>${r.solicit||0}</td>
-          <td>${r.realiz||0}</td>
-          <td>${r.n_exec||0}</td>
-          <td class="${cls}">${pct}%</td>
-        </tr>`;
-      }).join('')
-    :'<tr><td colspan="9" style="padding:20px;color:#4a7a4a;text-align:center">Nenhum dado encontrado</td></tr>';
-
-  document.getElementById('rodape-fotos').textContent=`${total} ULs`;
-}
-
-// ── ADMIN ──
-const CICLO_FOTOS={
-  '92':['02','05','08','11'],'93':['02','05','08','11'],'98':['02','05','08','11'],
-  '90':['01','04','07','10'],'91':['01','04','07','10'],'97':['01','04','07','10'],
-  '89':['03','06','09','12'],'94':['03','06','09','12'],'99':['03','06','09','12']
-};
-function estaNoMesFotos(rota, mesNum){
-  const rotaNum=parseInt(rota);
-  if((rotaNum>=1&&rotaNum<=88)||rotaNum===95||rotaNum===96) return true;
-  const sufixo=String(rota).padStart(2,'0');
-  const ciclo=CICLO_FOTOS[sufixo];
-  if(!ciclo) return true;
-  return ciclo.includes(String(mesNum).padStart(2,'0'));
-}
-
-let fileFotos=null;
-function selecionarFotos(inp){
-  fileFotos=inp.files[0];
-  if(fileFotos){
-    document.getElementById('tag-fotos').textContent=fileFotos.name;
-    document.getElementById('btn-fotos').disabled=false;
+async function iniciarFiltros(){
+  const sel=document.getElementById('f-mes');
+  const hoje=new Date();
+  for(let i=0;i<12;i++){
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    const val=`${mm}/${d.getFullYear()}`;
+    sel.innerHTML+=`<option value="${val}">${val}</option>`;
   }
+  // Popular select de gatilhos
+  const selGat=document.getElementById('gat-mes');
+  for(let i=0;i<12;i++){
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    const val=`${mm}/${d.getFullYear()}`;
+    selGat.innerHTML+=`<option value="${val}">${val}</option>`;
+  }
+  ['rk-mes','ah-mes'].forEach(id=>{
+    const s=document.getElementById(id);
+    if(!s) return;
+    for(let i=0;i<12;i++){
+      const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+      const mm=String(d.getMonth()+1).padStart(2,'0');
+      const val=`${mm}/${d.getFullYear()}`;
+      s.innerHTML+=`<option value="${val}">${val}</option>`;
+    }
+  });
+  // Popular bases (só se gestor sem restrição)
+  if(!PERFIL_BASE){
+    const {data}=await sb.from('matriculas').select('base').order('base');
+    const bases=[...new Set((data||[]).map(r=>r.base).filter(Boolean))];
+    const selB=document.getElementById('f-base');
+    bases.forEach(b=>selB.innerHTML+=`<option value="${b}">${b}</option>`);
+    ['rk-base','ah-base'].forEach(id=>{
+      const s=document.getElementById(id);
+      if(!s) return;
+      bases.forEach(b=>s.innerHTML+=`<option value="${b}">${b}</option>`);
+    });
+  }
+  const {data:ld}=await sb.from('local_base').select('local,cidade');
+  (ld||[]).forEach(r=>localMap[r.local]=r.cidade);
+  await carregarMatriculas();
 }
 
-async function processarFotos(){
-  if(!fileFotos) return;
-  const prog=document.getElementById('prog-fotos'),btn=document.getElementById('btn-fotos');
+async function carregarMatriculas(){
+  const base=PERFIL_BASE||document.getElementById('f-base').value;
+  let q=sb.from('matriculas').select('matricula,nome_leiturista').eq('situacao','Ativo').order('nome_leiturista');
+  if(base) q=q.eq('base',base);
+  const {data}=await q;
+  const sel=document.getElementById('f-mat');
+  const atual=sel.value;
+  sel.innerHTML='<option value="">— selecione —</option>';
+  (data||[]).forEach(r=>sel.innerHTML+=`<option value="${r.matricula}">${r.matricula} — ${r.nome_leiturista}</option>`);
+  if(atual) sel.value=atual;
+  await carregarDados();
+}
+
+// ── CARREGAR DADOS DO MÊS (1 consulta) ──────────────────────────
+async function carregarDados(){
+  const mat=document.getElementById('f-mat').value;
+  const mes=document.getElementById('f-mes').value;
+  if(!mat||!mes){ dadosMes=[]; renderTabela(); return; }
+
+  const [mm,aa]=mes.split('/');
+  const di=`${aa}-${mm}-01`;
+  const diasMes=new Date(parseInt(aa),parseInt(mm),0).getDate();
+  const df=`${aa}-${mm}-${String(diasMes).padStart(2,'0')}`;
+
+  document.getElementById('tbody').innerHTML=
+    '<tr><td colspan="10" class="status-msg">Carregando...</td></tr>';
+
+  const {data,error}=await sb
+    .from('jornada')
+    .select('data,rz,hora_inicial,hora_final,span_min,qtd_leituras,gaps_json,rotas_json,horas_json,imp_gbs,imp_cemig')
+    .eq('matricula',mat)
+    .gte('data',di).lte('data',df)
+    .order('data');
+
+  if(error){console.error(error);return;}
+  dadosMes=data||[];
+  renderTabela();
+}
+
+// ── RENDER — PURO JS, SEM BANCO ─────────────────────────────────
+function toHM(m){
+  if(m==null||m<0) return '00:00';
+  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+}
+function toMin(h){
+  if(!h||!h.includes(':')) return 0;
+  const[hh,mi]=h.split(':').map(Number); return hh*60+mi;
+}
+function tipoRota(n){
+  const v=parseInt(n)||0;
+  if(v>=1&&v<=79)  return {l:'Urbano',c:'b-urb'};
+  if(v>=80&&v<=88) return {l:'Localidade',c:'b-loc'};
+  if((v>=89&&v<=94)||(v>=97&&v<=99)) return {l:'Rural',c:'b-rur'};
+  if(v===95) return {l:'Irrigantes',c:'b-irr'};
+  if(v===96) return {l:'GD',c:'b-gd'};
+  return {l:'Rural',c:'b-rur'};
+}
+
+function renderTabela(){
+  const mat=document.getElementById('f-mat').value;
+  const mes=document.getElementById('f-mes').value;
+  const limiar=parseInt(document.getElementById('slicer').value);
+  if(!mat||!mes) return;
+
+  const [mm,aa]=mes.split('/');
+  const diasMes=new Date(parseInt(aa),parseInt(mm),0).getDate();
+  const diaSem0=new Date(parseInt(aa),parseInt(mm)-1,1).getDay();
+
+  // Indexar dados por data
+  // Agrupar múltiplas linhas por data (1 linha por RZ no banco → mesclar por data no painel)
+  const porData={};
+  dadosMes.forEach(r=>{
+    const d=r.data;
+    if(!porData[d]){porData[d]={linhas:[]};}
+    porData[d].linhas.push(r);
+  });
+
+  let totalLeit=0,totalTrabMin=0,somaIni=0,diasTrab=0,totalImpGbs=0;
+  const rows=[];
+
+  for(let d=1;d<=diasMes;d++){
+    const key=`${aa}-${mm}-${String(d).padStart(2,'0')}`;
+    const sem=(diaSem0+d-1)%7;
+    const fds=sem===0||sem===6;
+    const grupo=porData[key];
+
+    if(!grupo){
+      const corDia=fds?'color:#dc2626;font-weight:500':'';
+      rows.push(`<tr class="sem-trab">
+        <td>${mat}</td><td>—</td><td>${d}</td>
+        <td style="font-size:11px;${corDia}">${SEMANAS[sem]}</td>
+        <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`);
+      continue;
+    }
+
+    // Mesclar todas as linhas do dia (múltiplos RZs)
+    let todasHoras=[];
+    let totalLeitDia=0;
+    let todasRotas=[];
+    let todosRzs=[];
+    grupo.linhas.forEach(ln=>{
+      const h=JSON.parse(ln.horas_json||'[]');
+      todasHoras=[...todasHoras,...h];
+      totalLeitDia+=ln.qtd_leituras||0;
+      const rt=JSON.parse(ln.rotas_json||'[]');
+      todasRotas=[...todasRotas,...rt];
+      const rz=ln.rz?ln.rz.split(','):[];
+      todosRzs=[...todosRzs,...rz];
+    });
+    todasHoras=[...new Set(todasHoras)].sort();
+    todosRzs=[...new Set(todosRzs)].sort();
+    const hi=todasHoras[0];
+    const hf=todasHoras[todasHoras.length-1];
+    const spanDia=toMin(hf)-toMin(hi);
+    // Recalcular gaps reais sobre todas as horas do dia
+    const gapsDia=[];
+    for(let i=1;i<todasHoras.length;i++){
+      const gap=toMin(todasHoras[i])-toMin(todasHoras[i-1]);
+      if(gap>=5) gapsDia.push(gap);
+    }
+    const intervalo=gapsDia.filter(g=>g>=limiar).reduce((a,b)=>a+b,0);
+    const trab=Math.max(0,spanDia-intervalo);
+    const rzStr=todosRzs.join(',');
+
+    const impGbsDia=grupo.linhas.reduce((a,ln)=>a+(ln.imp_gbs||0),0);
+    const impCemigDia=grupo.linhas.reduce((a,ln)=>a+(ln.imp_cemig||0),0);
+    const totalImpDia=impGbsDia+impCemigDia;
+    // Mínimo 10 leituras para contar como dia trabalhado
+    if(totalLeitDia>=10){
+      totalLeit+=totalLeitDia;
+      totalTrabMin+=trab;
+      somaIni+=toMin(hi);
+      diasTrab++;
+      totalImpGbs+=impGbsDia;
+    } else {
+      totalLeit+=totalLeitDia;
+    }
+
+    // Badges de rota+local
+    const rotas=[...new Set(todasRotas)];
+    const vistos=new Map();
+    rotas.forEach(rl=>{
+      const[rt,lc]=rl.split('|');
+      const tp=tipoRota(rt);
+      const cidade=localMap[lc]||lc;
+      const k=`${tp.l}|${cidade}`;
+      if(!vistos.has(k)) vistos.set(k,{tp,cidade});
+    });
+    const badges=[...vistos.values()]
+      .map(({tp,cidade})=>`<span class="badge ${tp.c}">${tp.l} (${cidade})</span>`)
+      .join(' ');
+
+    const corDia2=fds?'color:#dc2626;font-weight:500':'';
+    const pouco=totalLeitDia<10;
+    rows.push(`<tr class="${pouco?'sem-trab':''}">
+      <td>${mat}</td>
+      <td>${rzStr||'—'}</td>
+      <td>${d}</td>
+      <td style="${corDia2}">${SEMANAS[sem]}</td>
+      <td>${pouco?'<span style="color:#bbb">':''} ${hi}${pouco?'</span>':''}</td>
+      <td>${hf}</td>
+      <td>${intervalo>0?toHM(intervalo):'—'}</td>
+      <td><strong>${toHM(trab)}</strong></td>
+      <td>${totalLeitDia}</td>
+      <td>${impGbsDia||'—'}</td>
+      <td>${impCemigDia||'—'}</td>
+      <td>${totalImpDia||'—'}</td>
+      <td class="rota-col">${badges}</td>
+    </tr>`);
+  }
+
+  document.getElementById('tbody').innerHTML=rows.join('');
+
+  const mi=diasTrab>0?Math.round(somaIni/diasTrab):0;
+  const mt=diasTrab>0?Math.round(totalTrabMin/diasTrab):0;
+  const ml=diasTrab>0?Math.round(totalLeit/diasTrab):0;
+  document.getElementById('kpis').innerHTML=`
+    <div class="kpi"><div class="kpi-label">Dias trabalhados</div><div class="kpi-value">${diasTrab}</div></div>
+    <div class="kpi"><div class="kpi-label">Média horas trabalhadas</div><div class="kpi-value">${toHM(mt)}</div></div>
+    <div class="kpi"><div class="kpi-label">Média início trabalho</div><div class="kpi-value">${toHM(mi)}</div></div>
+    <div class="kpi"><div class="kpi-label">Média de leituras</div><div class="kpi-value">${ml}</div></div>
+    <div class="kpi"><div class="kpi-label">Total de leituras</div><div class="kpi-value">${totalLeit.toLocaleString('pt-BR')}</div></div>
+    <div class="kpi"><div class="kpi-label">Impedimentos GBS</div><div class="kpi-value">${totalImpGbs.toLocaleString('pt-BR')}</div></div>`;
+  document.getElementById('totais').innerHTML=`
+    <div><span>Total leituras:</span>${totalLeit.toLocaleString('pt-BR')}</div>
+    <div><span>Total horas trabalhadas:</span>${toHM(totalTrabMin)}</div>
+    <div><span>Dias trabalhados:</span>${diasTrab}</div>`;
+}
+
+// ── ADMIN: UPLOAD CEMIG ──────────────────────────────────────────
+let fileCemig=null,fileMat=null,fileLocal=null;
+
+function selecionarCemig(inp){
+  fileCemig=inp.files[0]; if(!fileCemig) return;
+  document.getElementById('tag-cemig').innerHTML=
+    `<div class="tag-arquivo">&#128196; ${fileCemig.name} (${(fileCemig.size/1024).toFixed(0)} KB)</div>`;
+  document.getElementById('btn-cemig').disabled=false;
+}
+
+async function processarCemig(fileOverride){
+  const arquivo = fileOverride || fileCemig;
+  if(!arquivo) return;
+  const prog=document.getElementById('prog-cemig');
+  const btn=document.getElementById('btn-cemig');
   btn.disabled=true; prog.className='progresso'; prog.textContent='Lendo arquivo...';
   try{
-    const buf=await fileFotos.arrayBuffer();
-    const wb=XLSX.read(buf,{type:'array',raw:true});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+    const buf=await arquivo.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:true});
 
-    // Mês ref na D17 (índice linha 16, col 3)
-    let mesRef=null;
-    for(let ri=0;ri<Math.min(25,rows.length);ri++){
-      for(let ci=0;ci<rows[ri].length;ci++){
-        const v=rows[ri][ci]!=null?String(rows[ri][ci]).trim():'';
-        const m=v.match(/^(\d{2})\/(\d{4})$/);
-        if(m){ mesRef=`${m[2]}-${m[1]}-01`; break; }
+    // Agrupar leituras por mat+data no navegador
+    const grupos={};
+    let mesRefImp = null; // mês de referência do cabeçalho (usado fora do loop)
+    const totalPorMat = {}; // conta todas as instalações do arquivo por matricula (independe da data)
+    for(const sheetName of wb.SheetNames){
+      const ws=wb.Sheets[sheetName];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
+      // Ler mês de referência do cabeçalho
+      if(!mesRefImp){
+        for(let ri=0;ri<Math.min(20,rows.length);ri++){
+          for(let ci=0;ci<rows[ri].length;ci++){
+            const v=rows[ri][ci]!=null?String(rows[ri][ci]).trim():'';
+            const m=v.match(/^(\d{2})\/(\d{4})$/);
+            if(m){ mesRefImp=`${m[2]}-${m[1]}-01`; break; }
+          }
+          if(mesRefImp) break;
+        }
       }
-      if(mesRef) break;
-    }
-
-    if(!mesRef){ prog.textContent='Mês não encontrado no arquivo.'; btn.disabled=false; return; }
-
-    // Processar dados — UL col 0, tipo col 6, leit_exec col 11, solict col 20, realiz col 21, n_exec col 22
-    // UL repetida: pegar a de maior leituras_exec (col 11)
-    const ulMap={};
-    for(const row of rows){
-      const v0=row[0]!=null?String(row[0]).trim():'';
-      if(v0.length!==8||!/^\d{8}$/.test(v0)) continue;
-      const ul=v0;
-      const tipo=row[6]!=null?String(row[6]).trim().toUpperCase():'';
-      if(tipo!=='CNV'&&tipo!=='OSB') continue;
-      const leit_exec=parseInt(row[11])||0;
-      const solicit=parseInt(row[20])||0;
-      const realiz=parseInt(row[21])||0;
-      const n_exec=parseInt(row[22])||0;
-      // UL repetida: pegar a de maior leit_exec
-      if(!ulMap[ul]||leit_exec>ulMap[ul].leituras_exec){
-        const rz=ul.slice(0,2);
-        const lc=ul.slice(2,6);
-        const rota=ul.slice(6);
-        const mesNum=parseInt(mesRef.split('-')[1]);
-        if(!estaNoMesFotos(rota, mesNum)) continue; // pular rotas fora do ciclo
-        const map=LOCAL_MAP[lc]||{};
-        const rotaNum2=parseInt(rota);
-        const tipo_rota=(rotaNum2>=1&&rotaNum2<=88)?'URBANO':'RURAL';
-        ulMap[ul]={mes_ref:mesRef,ul,rz,local_cod:lc,base:map.base||null,cidade:map.cidade||null,
-          tipo,leituras_exec:leit_exec,solicit,realiz,n_exec,tipo_rota};
+      let mat=null,ul=null,rz=null,lc=null,rota=null,emDados=false,ultimoImpedimento=null,ultimaInstalacao=null;
+      for(const row of rows){
+        const v0=row[0]!=null?String(row[0]).trim():'';
+        if(v0.startsWith('Unidade de Leitura:')){
+          const m=v0.match(/Unidade de Leitura: (\d{8})/);
+          if(m){ul=m[1];rz=ul.slice(0,2);lc=ul.slice(2,6);rota=parseInt(ul.slice(6));}
+          emDados=false;
+        } else if(v0.startsWith('Leiturista:')){
+          const m=v0.match(/Leiturista: (\S+)/);
+          if(m) mat=m[1];
+        } else if(v0==='Instalação'){
+          emDados=true;
+        } else if(emDados&&/^\d{10}$/.test(v0)){
+          const dh=row[15]!=null?String(row[15]).trim():null;
+          const hora=row[17]!=null?String(row[17]).trim():null;
+          const oc=row[12]!=null?parseInt(String(row[12]).trim())||0:0;
+          const medidor=row[3]!=null?String(row[3]).trim():null;
+          const qtdDig=row[32]!=null?parseInt(String(row[32]).trim())||1:1;
+          const reg=row[8]!=null?String(row[8]).trim():null;
+          if(!dh||!hora||!mat||!ul) continue;
+          const m2=dh.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+          if(!m2) continue;
+          const dataStr=`${m2[3]}-${m2[2]}-${m2[1]}`;
+          // Contar todas as instalações do arquivo para o total do mês (independe da data)
+          if(mat) totalPorMat[mat]=(totalPorMat[mat]||0)+1;
+          const chave=`${mat}|${dataStr}`;
+          if(!grupos[chave]) grupos[chave]={mat,data:dataStr,ul,uls:new Set(),rzs:[],lc_rotas:[],horas:[],imp_gbs:0,imp_cemig:0};
+          if(ul) grupos[chave].uls.add(ul);
+          grupos[chave].horas.push(hora);
+          grupos[chave].rzs.push(rz);
+          grupos[chave].lc_rotas.push(`${rota}|${lc}`);
+          // Impedimentos: OC > 1999 — salvar para tabela de impedimentos
+          const OC_CEMIG=new Set([3311,3376,3804,3894,3895,3901,3902,3903,3904,3905,3906,3907,3908,5109,5802,6820,6824,6872,7000]);
+          if(oc>1999){
+            const resp=OC_CEMIG.has(oc)?'CEMIG':'GBS';
+            if(resp==='CEMIG') grupos[chave].imp_cemig++;
+            else grupos[chave].imp_gbs++;
+            // Guardar dados do impedimento para salvar depois
+            if(!grupos[chave].impedimentos) grupos[chave].impedimentos=[];
+            grupos[chave].impedimentos.push({
+              instalacao:v0, medidor, oc_str:String(oc), reg,
+              qtd_digitacao:qtdDig, responsabilidade:resp,
+              ul, rz, local_cod:lc, data:mesRefImp||dataStr, matricula:mat,
+              endereco:'',
+            });
+            ultimoImpedimento=grupos[chave].impedimentos[grupos[chave].impedimentos.length-1];
+          }
+          ultimaInstalacao=v0;
+        } else if(emDados && ultimoImpedimento && v0 && !/^\d{10}$/.test(v0)){
+          // Linha par: endereço do cliente
+          const end=row[17]!=null?String(row[17]).trim():'';
+          if(end && ultimoImpedimento.endereco==='') ultimoImpedimento.endereco=end;
+          ultimoImpedimento=null;
+        }
       }
     }
 
-    const recs=Object.values(ulMap).filter(r=>r.solicit>0);
-    if(!recs.length){ prog.textContent='Nenhum dado com fotos encontrado.'; btn.disabled=false; return; }
+    prog.textContent='Calculando jornadas...';
+    const toMin=h=>{const[hh,mi]=h.split(':').map(Number);return hh*60+mi;};
+    const registros=[];
 
-    prog.textContent=`${recs.length} ULs encontradas. Salvando...`;
-    await sb.from('fotos').delete().eq('mes_ref',mesRef);
-    const LOTE=500;
-    for(let i=0;i<recs.length;i+=LOTE){
-      await sb.from('fotos').insert(recs.slice(i,i+LOTE));
-      prog.textContent=`Salvando... ${Math.min(i+LOTE,recs.length)}/${recs.length}`;
+    for(const g of Object.values(grupos)){
+      const horas=g.horas.filter(h=>h&&h.includes(':')).sort();
+      if(horas.length<1) continue;
+      const hi=horas[0], hf=horas[horas.length-1];
+      const span=toMin(hf)-toMin(hi);
+      // Gaps >= 5min (mínimo do slicer)
+      const gaps=[];
+      for(let i=1;i<horas.length;i++){
+        const gap=toMin(horas[i])-toMin(horas[i-1]);
+        if(gap>=5) gaps.push(gap);
+      }
+      const rzs=[...new Set(g.rzs)].sort().join(',');
+      const rotasUnicas=[...new Set(g.lc_rotas)];
+      registros.push({
+        matricula:g.mat,
+        data:g.data,
+        ul:g.ul,
+        rz:rzs,
+        hora_inicial:hi,
+        hora_final:hf,
+        span_min:span,
+        qtd_leituras:horas.length,
+        gaps_json:JSON.stringify(gaps),
+        rotas_json:JSON.stringify(rotasUnicas),
+        horas_json:JSON.stringify(horas),
+        imp_gbs:g.imp_gbs||0,
+        imp_cemig:g.imp_cemig||0,
+        mes_ref:mesRefImp||null,
+      });
     }
+
+    prog.textContent=`${registros.length} dias de jornada. Salvando...`;
+
+    // Nova abordagem: 1 linha por matricula+data+rz
+    // Re-upload do mesmo RZ substitui, RZ diferente convive no banco
+    const rzDoArquivo=registros[0]?.rz||'';
+    // Deletar registros deste RZ+datas que já existem no banco
+    const matsNovas=[...new Set(registros.map(r=>r.matricula))];
+    const datasNovas=[...new Set(registros.map(r=>r.data))];
+    const {data:existentes}=await sb.from('jornada').select('id,matricula,data,rz')
+      .in('matricula',matsNovas).in('data',datasNovas);
+    // Apagar só os registros que têm o mesmo RZ do arquivo atual
+    const idsParaDeletar=(existentes||[])
+      .filter(e=>{
+        const rzs=e.rz?e.rz.split(','):[];
+        return rzs.includes(rzDoArquivo);
+      })
+      .map(e=>e.id);
+    if(idsParaDeletar.length){
+      await sb.from('jornada').delete().in('id',idsParaDeletar);
+    }
+    // Inserir novos registros
+    const LOTE=200;
+    for(let i=0;i<registros.length;i+=LOTE){
+      const {error}=await sb.from('jornada').insert(registros.slice(i,i+LOTE));
+      if(error) throw error;
+    }
+    // Salvar impedimentos na tabela impedimentos
+    const impsParaSalvar=[];
+    for(const g of Object.values(grupos)){
+      if(g.impedimentos && g.impedimentos.length){
+        for(const imp of g.impedimentos){
+          const localInfo={}; // será enriquecido com local_base
+          impsParaSalvar.push({
+            data:imp.data,
+            matricula:imp.matricula,
+            rz:imp.rz,
+            ul:imp.ul,
+            instalacao:imp.instalacao,
+            medidor:imp.medidor,
+            ocorrencia:imp.oc_str,
+            endereco:imp.endereco,
+            qtd_digitacao:imp.qtd_digitacao,
+            responsabilidade:imp.responsabilidade,
+            local_cod:imp.local_cod,
+            reg:imp.reg||null,
+          });
+        }
+      }
+    }
+
+    if(impsParaSalvar.length){
+      prog.textContent='Enriquecendo com base/cidade...';
+      // Buscar local_base para enriquecer
+      const locCods=[...new Set(impsParaSalvar.map(r=>r.local_cod).filter(Boolean))];
+      const {data:lbData}=await sb.from('local_base').select('local,cidade,base').in('local',locCods);
+      const lbMap={};
+      (lbData||[]).forEach(r=>lbMap[r.local]={cidade:r.cidade,base:r.base});
+
+      const impsEnriq=impsParaSalvar.map(r=>{
+        const lb=lbMap[r.local_cod]||{};
+        return {
+          data:r.data, matricula:r.matricula, rz:r.rz, ul:r.ul,
+          instalacao:r.instalacao, medidor:r.medidor, ocorrencia:r.ocorrencia,
+          endereco:r.endereco, qtd_digitacao:r.qtd_digitacao,
+          responsabilidade:r.responsabilidade, reg:r.reg||null,
+          cidade:lb.cidade||null, base:lb.base||null,
+        };
+      });
+
+      // Deletar impedimentos das mesmas ULs e reinserir
+      const ulsImp=[...new Set(impsEnriq.map(r=>r.ul))];
+      for(const u of ulsImp) await sb.from('impedimentos').delete().eq('ul',u);
+
+      const LOTE2=200;
+      for(let i=0;i<impsEnriq.length;i+=LOTE2){
+        const {error}=await sb.from('impedimentos').insert(impsEnriq.slice(i,i+LOTE2));
+        if(error) throw error;
+      }
+      prog.textContent=`Jornada + ${impsEnriq.length} impedimentos salvos!`;
+    }
+
+    // Salvar total de leituras por matricula do arquivo (mês do cabeçalho)
+    if(mesRefImp && Object.keys(totalPorMat).length){
+      // Pegar o RZ de cada leiturista a partir dos grupos
+      const rzPorMat={};
+      Object.values(grupos).forEach(g=>{ if(g.mat&&g.rzs[0]) rzPorMat[g.mat]=g.rzs[0]; });
+      const rzsDoArquivo=[...new Set(Object.values(rzPorMat))];
+      // Deletar totais do mesmo mes+rz
+      for(const rz of rzsDoArquivo)
+        await sb.from('totais_rz').delete().eq('mes_ref',mesRefImp).eq('rz',rz);
+      const totaisRecs=Object.entries(totalPorMat).map(([matricula,total_leituras])=>({
+        mes_ref:mesRefImp, rz:rzPorMat[matricula]||'00', matricula, total_leituras
+      }));
+      if(totaisRecs.length){
+        const LOTE4=500;
+        for(let i=0;i<totaisRecs.length;i+=LOTE4)
+          await sb.from('totais_rz').upsert(totaisRecs.slice(i,i+LOTE4),{onConflict:'mes_ref,rz,matricula'});
+      }
+    }
+
+    // Salvar UL → leiturista usando dados já processados nos grupos
+    if(mesRefImp){
+      const ulLeitMap={};
+      Object.values(grupos).forEach(g=>{
+        if(g.mat && g.uls && g.uls.size) g.uls.forEach(u=>{ ulLeitMap[u]=g.mat; });
+        else if(g.ul && g.mat) ulLeitMap[g.ul]=g.mat; // fallback
+      });
+      const ulLeitRecs=Object.entries(ulLeitMap).map(([ul,matricula])=>({
+        mes_ref:mesRefImp, ul, rz:ul.slice(0,2), matricula
+      }));
+      if(ulLeitRecs.length){
+        const rzs=[...new Set(ulLeitRecs.map(r=>r.rz))];
+        for(const rz of rzs) await sb.from('ul_leiturista').delete().eq('mes_ref',mesRefImp).eq('rz',rz);
+        const LOTE3=500;
+        for(let i=0;i<ulLeitRecs.length;i+=LOTE3)
+          await sb.from('ul_leiturista').upsert(ulLeitRecs.slice(i,i+LOTE3),{onConflict:'mes_ref,ul'});
+      }
+    }
+
     prog.className='progresso ok';
-    prog.textContent=`✓ ${recs.length} ULs salvas para ${mesRef.slice(5,7)}/${mesRef.slice(0,4)}!`;
-    carregarMeses();
-  }catch(e){ prog.className='progresso erro'; prog.textContent='Erro: '+e.message; console.error(e); btn.disabled=false; }
+    prog.textContent=`\u2713 ${registros.length} registros de jornada + ${impsParaSalvar.length} impedimentos salvos!`;
+    registrarUpload(arquivo.name);
+    // Verificar gatilhos automáticos
+    if(mesRefImp) await verificarGatilhosImpedimentos(mesRefImp);
+  }catch(e){prog.className='progresso erro';prog.textContent='Erro: '+e.message;console.error(e);}
+  btn.disabled=false;
 }
 
-let PERFIL_BASE=null, PERFIL_TIPO=null;
+async function processarArquivoCemig(file, onProgress){
+  const progEl = document.getElementById('prog-cemig');
+  const observer = new MutationObserver(()=>{ onProgress && onProgress(progEl.textContent); });
+  observer.observe(progEl, {childList:true, characterData:true, subtree:true});
+  await processarCemig(file);
+  observer.disconnect();
+  if(progEl.className.includes('erro')) throw new Error(progEl.textContent);
+}
 
+function selecionarMat(inp){  fileMat=inp.files[0]; if(!fileMat) return;
+  document.getElementById('tag-mat').innerHTML=`<div class="tag-arquivo">&#128196; ${fileMat.name}</div>`;
+  document.getElementById('btn-mat').disabled=false;
+}
+async function processarMatriculas(){
+  if(!fileMat) return;
+  const prog=document.getElementById('prog-mat');
+  const btn=document.getElementById('btn-mat');
+  btn.disabled=true; prog.className='progresso'; prog.textContent='Lendo...';
+  try{
+    const buf=await fileMat.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
+    const recs=rows.map(r=>({
+      matricula:r.MATRICULA!=null?String(r.MATRICULA).trim():null,
+      nome_leiturista:r.NOME_LEITURISTA||null,
+      funcao:r.FUNCAO||null,base:r.BASE||null,situacao:r.SITUACAO||null,
+    })).filter(r=>r.matricula);
+    await sb.from('matriculas').delete().neq('matricula','__x__');
+    const {error}=await sb.from('matriculas').insert(recs);
+    if(error) throw error;
+    prog.className='progresso ok'; prog.textContent=`\u2713 ${recs.length} matrículas salvas!`;
+  }catch(e){prog.className='progresso erro';prog.textContent='Erro: '+e.message;}
+  btn.disabled=false;
+}
+
+function selecionarLocal(inp){
+  fileLocal=inp.files[0]; if(!fileLocal) return;
+  document.getElementById('tag-local').innerHTML=`<div class="tag-arquivo">&#128196; ${fileLocal.name}</div>`;
+  document.getElementById('btn-local').disabled=false;
+}
+async function processarLocal(){
+  if(!fileLocal) return;
+  const prog=document.getElementById('prog-local');
+  const btn=document.getElementById('btn-local');
+  btn.disabled=true; prog.className='progresso'; prog.textContent='Lendo...';
+  try{
+    const buf=await fileLocal.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:null});
+    const recs=rows.map(r=>({
+      local:r.LOCAL!=null?String(r.LOCAL).trim():null,
+      cidade:r.CIDADE||null,base:r.BASE||null,
+    })).filter(r=>r.local);
+    await sb.from('local_base').delete().neq('local','__x__');
+    const {error}=await sb.from('local_base').insert(recs);
+    if(error) throw error;
+    recs.forEach(r=>localMap[r.local]=r.cidade);
+    document.getElementById('qtd-locais').textContent=recs.length;
+    prog.className='progresso ok'; prog.textContent=`\u2713 ${recs.length} locais salvos!`;
+  }catch(e){prog.className='progresso erro';prog.textContent='Erro: '+e.message;}
+  btn.disabled=false;
+}
+
+// ── RANKING ──────────────────────────────────────────────────────
+async function carregarRanking(){
+  const mes=document.getElementById('rk-mes').value;
+  const base=document.getElementById('rk-base').value;
+  const barsEl=document.getElementById('rk-bars');
+  if(!mes){barsEl.innerHTML='<div class="status-msg">Selecione o mês.</div>';return;}
+  barsEl.innerHTML='<div class="status-msg">Carregando...</div>';
+  const [mm,aa]=mes.split('/');
+  const mesRef=`${aa}-${mm}-01`;
+  let qMat=sb.from('matriculas').select('matricula,nome_leiturista,base').eq('situacao','Ativo');
+  const baseRk=PERFIL_BASE||base;
+  if(baseRk) qMat=qMat.eq('base',baseRk);
+  const {data:mats}=await qMat;
+  const matMap={};
+  (mats||[]).forEach(r=>matMap[r.matricula]={nome:r.nome_leiturista,base:r.base});
+  const matsIds=Object.keys(matMap);
+  if(!matsIds.length){barsEl.innerHTML='<div class="status-msg">Nenhum leiturista encontrado.</div>';return;}
+  // Buscar totais por matricula (contagem real do arquivo)
+  let totaisData=[], _from=0;
+  while(true){
+    const {data:lote}=await sb.from('totais_rz').select('matricula,total_leituras')
+      .eq('mes_ref',mesRef).in('matricula',matsIds).range(_from,_from+999);
+    if(!lote||!lote.length) break;
+    totaisData=totaisData.concat(lote);
+    if(lote.length<1000) break;
+    _from+=1000;
+  }
+  // Fallback: somar jornada se totais_rz não tiver matricula
+  let acum={};
+  if(totaisData.length && totaisData[0].matricula){
+    totaisData.forEach(r=>{acum[r.matricula]=(acum[r.matricula]||0)+(r.total_leituras||0);});
+  } else {
+    let jornada=[], _f=0;
+    while(true){
+      const {data:lote}=await sb.from('jornada').select('matricula,qtd_leituras')
+        .in('matricula',matsIds).eq('mes_ref',mesRef).range(_f,_f+999);
+      if(!lote||!lote.length) break;
+      jornada=jornada.concat(lote);
+      if(lote.length<1000) break;
+      _f+=1000;
+    }
+    jornada.forEach(row=>{acum[row.matricula]=(acum[row.matricula]||0)+(row.qtd_leituras||0);});
+  }
+  const rank=Object.entries(acum).sort((a,b)=>b[1]-a[1]);
+  if(!rank.length){barsEl.innerHTML='<div class="status-msg">Nenhum dado no período.</div>';return;}
+  const maxVal=rank[0][1];
+  barsEl.innerHTML=rank.map(([mat,total],i)=>{
+    const info=matMap[mat]||{nome:mat};
+    const pct=(total/maxVal*100).toFixed(1);
+    return `<div class="bar-row">
+      <div class="bar-rank">${i+1}</div>
+      <div class="bar-name" title="${info.nome}">${mat}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${pct}%">
+          <span class="bar-val">${total.toLocaleString('pt-BR')}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ALERTA DE INÍCIO ──────────────────────────────────────────────
+async function carregarAlertaInicio(){
+  const mes=document.getElementById('ai-mes').value;
+  const base=document.getElementById('ai-base').value;
+  const limHora=parseInt(document.getElementById('ai-hora').value)||540;
+  if(!mes) return;
+  const [mm,aa]=mes.split('/');
+  const di=`${aa}-${mm}-01`;
+  const df=`${aa}-${mm}-${String(new Date(parseInt(aa),parseInt(mm),0).getDate()).padStart(2,'0')}`;
+  const aiBody=document.getElementById('ai-body');
+  aiBody.innerHTML='<div class="vazio-msg">Carregando...</div>';
+  let qMat=sb.from('matriculas').select('matricula,nome_leiturista,base').eq('situacao','Ativo');
+  const baseAi=PERFIL_BASE||base;
+  if(baseAi) qMat=qMat.eq('base',baseAi);
+  const {data:mats}=await qMat;
+  const matMap2={};
+  (mats||[]).forEach(r=>matMap2[r.matricula]={nome:r.nome_leiturista});
+  const matsIds=Object.keys(matMap2);
+  if(!matsIds.length){aiBody.innerHTML='<div class="vazio-msg">Nenhum leiturista encontrado.</div>';return;}
+  const {data:jornada}=await sb.from('jornada')
+    .select('matricula,hora_inicial,qtd_leituras')
+    .in('matricula',matsIds).gte('data',di).lte('data',df);
+  const soma={};
+  (jornada||[]).forEach(row=>{
+    if((row.qtd_leituras||0)<10) return;
+    const mat=row.matricula;
+    if(!soma[mat]) soma[mat]={total:0,dias:0};
+    soma[mat].total+=toMin(row.hora_inicial||'00:00');
+    soma[mat].dias++;
+  });
+  const resultado=Object.entries(soma)
+    .map(([mat,v])=>({mat,media:Math.round(v.total/v.dias),dias:v.dias}))
+    .filter(r=>r.media>limHora)
+    .sort((a,b)=>b.media-a.media);
+  document.getElementById('ai-resumo').textContent=resultado.length
+    ?`${resultado.length} leiturista(s) com m\u00e9dia de in\u00edcio ap\u00f3s ${toHM(limHora)}`
+    :`Nenhum leiturista com in\u00edcio tardio ap\u00f3s ${toHM(limHora)}`;
+  if(!resultado.length){aiBody.innerHTML='<div class="vazio-msg">Nenhum leiturista com in\u00edcio tardio no per\u00edodo.</div>';return;}
+  const maxMin=resultado[0].media;
+  aiBody.innerHTML=resultado.map((r,i)=>{
+    const info=matMap2[r.mat]||{nome:r.mat};
+    const pct=Math.round((r.media/maxMin)*100);
+    return `<div class="alerta-item-row ${i%2===1?'par':''}">
+      <div class="alerta-mat">${r.mat} \u2014 ${info.nome}</div>
+      <div class="alerta-hora">${toHM(r.media)}</div>
+      <div class="alerta-bar-wrap"><div class="alerta-bar" style="width:${pct}%"></div></div>
+      <div style="font-size:11px;color:#4a7a4a;min-width:60px;text-align:right">${r.dias} dia(s)</div>
+    </div>`;
+  }).join('');
+}
+
+// ── META DE LEITURAS ──────────────────────────────────────────────
+async function carregarMeta(){
+  const mes=document.getElementById('mt-mes').value;
+  const base=document.getElementById('mt-base').value;
+  const metaUrb=parseInt(document.getElementById('mt-meta-urb').value)||100;
+  const metaRur=parseInt(document.getElementById('mt-meta-rur').value)||60;
+  if(!mes) return;
+  const [mm,aa]=mes.split('/');
+  const di=`${aa}-${mm}-01`;
+  const df=`${aa}-${mm}-${String(new Date(parseInt(aa),parseInt(mm),0).getDate()).padStart(2,'0')}`;
+  document.getElementById('mt-urb-body').innerHTML='<div class="vazio-msg">Carregando...</div>';
+  document.getElementById('mt-rur-body').innerHTML='<div class="vazio-msg">Carregando...</div>';
+  let qMat=sb.from('matriculas').select('matricula,nome_leiturista,base').eq('situacao','Ativo');
+  const baseMt=PERFIL_BASE||base;
+  if(baseMt) qMat=qMat.eq('base',baseMt);
+  const {data:mats}=await qMat;
+  const matMap3={};
+  (mats||[]).forEach(r=>matMap3[r.matricula]={nome:r.nome_leiturista});
+  const matsIds=Object.keys(matMap3);
+  if(!matsIds.length){
+    document.getElementById('mt-urb-body').innerHTML='<div class="vazio-msg">Nenhum leiturista encontrado.</div>';
+    document.getElementById('mt-rur-body').innerHTML='<div class="vazio-msg">Nenhum leiturista encontrado.</div>';
+    return;
+  }
+  const {data:jornada}=await sb.from('jornada')
+    .select('matricula,rz,qtd_leituras')
+    .in('matricula',matsIds).gte('data',di).lte('data',df);
+  const acum={};
+  (jornada||[]).forEach(row=>{
+    if((row.qtd_leituras||0)<10) return;
+    const mat=row.matricula;
+    if(!acum[mat]) acum[mat]={urb:0,rur:0,diasUrb:0,diasRur:0};
+    const n=parseInt(String(row.rz||'').split('.')[0]);
+    if(n>=1&&n<=88){acum[mat].urb+=row.qtd_leituras;acum[mat].diasUrb++;}
+    else if(n>=89&&n<=99){acum[mat].rur+=row.qtd_leituras;acum[mat].diasRur++;}
+  });
+  const abaixoUrb=[];
+  const abaixoRur=[];
+  Object.entries(acum).forEach(([mat,v])=>{
+    const mediaUrb=v.diasUrb>0?Math.round(v.urb/v.diasUrb):0;
+    const mediaRur=v.diasRur>0?Math.round(v.rur/v.diasRur):0;
+    if(v.urb>=v.rur&&v.diasUrb>0&&mediaUrb<metaUrb) abaixoUrb.push({mat,media:mediaUrb,dias:v.diasUrb});
+    if(v.rur>v.urb&&v.diasRur>0&&mediaRur<metaRur) abaixoRur.push({mat,media:mediaRur,dias:v.diasRur});
+  });
+  abaixoUrb.sort((a,b)=>a.media-b.media);
+  abaixoRur.sort((a,b)=>a.media-b.media);
+  function renderMetaBox(elId,lista,meta,tipo){
+    const el=document.getElementById(elId);
+    if(!lista.length){el.innerHTML=`<div class="vazio-msg">Todos acima da meta de ${meta} leituras/dia.</div>`;return;}
+    const badge=tipo==='urb'?'<span class="badge-urb">Urbano</span>':'<span class="badge-rur">Rural</span>';
+    el.innerHTML=lista.map((r,i)=>{
+      const info=matMap3[r.mat]||{nome:r.mat};
+      return `<div class="meta-row ${i%2===1?'par':''}">
+        <div class="meta-mat">${badge} ${r.mat} \u2014 ${info.nome}</div>
+        <div class="meta-val">${r.media}/dia</div>
+        <div class="meta-ref">${r.dias} dia(s) \u00b7 meta ${meta}</div>
+      </div>`;
+    }).join('');
+  }
+  renderMetaBox('mt-urb-body',abaixoUrb,metaUrb,'urb');
+  renderMetaBox('mt-rur-body',abaixoRur,metaRur,'rur');
+}
+
+// ── LOG DE UPLOADS (localStorage) ────────────────────────────────
+function registrarUpload(nomeArquivo){
+  const LOG_KEY='gbs_upload_log';
+  const agora=new Date();
+  const dt=agora.toLocaleDateString('pt-BR')+' '+agora.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  let lista=[];
+  try{lista=JSON.parse(localStorage.getItem(LOG_KEY)||'[]');}catch(e){}
+  lista.unshift({nome:nomeArquivo,dt});
+  if(lista.length>30) lista=lista.slice(0,30);
+  localStorage.setItem(LOG_KEY,JSON.stringify(lista));
+  renderizarLog();
+}
+function renderizarLog(){
+  const LOG_KEY='gbs_upload_log';
+  const el=document.getElementById('log-uploads-lista');
+  if(!el) return;
+  let lista=[];
+  try{lista=JSON.parse(localStorage.getItem(LOG_KEY)||'[]');}catch(e){}
+  if(!lista.length){el.innerHTML='<span class="log-vazio">Nenhum upload ainda.</span>';return;}
+  el.innerHTML=lista.map(i=>`<div class="log-item"><div class="log-nome">${i.nome}</div><div class="log-dt">${i.dt}</div></div>`).join('');
+}
+
+async function carregarInfoAdmin(){
+  const {count}=await sb.from('local_base').select('*',{count:'exact',head:true});
+  document.getElementById('qtd-locais').textContent=count||'—';
+}
+
+// ── FUNÇÕES SMTP (via Supabase Edge Function) ─────────────────────
+async function enviarEmailTratativa(para, assunto, corpo){
+  try{
+    await fetch(`${SUPABASE_URL}/functions/v1/enviar-email`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_KEY}`},
+      body:JSON.stringify({para,assunto,corpo})
+    });
+  }catch(e){console.error('Erro email:',e);}
+}
+
+// ── BUSCAR CONFIG TRATATIVAS ──────────────────────────────────────
+async function getConfig(){
+  const {data}=await sb.from('tratativas_config').select('*').single();
+  return data;
+}
+
+// ── DISPARAR TRATATIVA ────────────────────────────────────────────
+async function dispararTratativa({tipo,matricula,nomeLeiturista,base,mesRef,detalhe,valorDisparado}){
+  const cfg=await getConfig();
+  if(!cfg) return;
+  // Verificar pausa global
+  const pausaMap={impedimentos:cfg.impedimentos_email_pausado,erros:cfg.erros_email_pausado,meta:cfg.meta_email_pausado,inicio_tardio:cfg.inicio_tardio_email_pausado};
+  if(pausaMap[tipo]) return;
+  // Verificar se já disparou esse valor
+  if(valorDisparado!=null){
+    const {data:ja}=await sb.from('tratativas_disparos').select('id')
+      .eq('matricula',matricula).eq('mes_ref',mesRef).eq('tipo',tipo)
+      .eq('valor_disparado',valorDisparado).eq('base',base||'').single();
+    if(ja) return;
+  }
+  // Buscar supervisor da base
+  const {data:sup}=await sb.from('usuarios_portal').select('id,nome,email')
+    .eq('base',base).in('perfil',['supervisor']).eq('ativo',true).single();
+  if(!sup) return;
+  // Calcular prazo
+  const prazo=new Date();
+  prazo.setDate(prazo.getDate()+(cfg.prazo_dias||5));
+  const prazoStr=prazo.toLocaleDateString('pt-BR');
+  // Salvar tratativa
+  const {data:trat}=await sb.from('tratativas').insert({
+    tipo, automatica:true, mes_ref:mesRef,
+    matricula, nome_leiturista:nomeLeiturista, base,
+    supervisor_id:sup.id, supervisor_email:sup.email, supervisor_nome:sup.nome,
+    detalhe, prazo_resposta:prazo.toISOString().split('T')[0],
+  }).select().single();
+  // Registrar disparo
+  if(valorDisparado!=null){
+    await sb.from('tratativas_disparos').insert({matricula,mes_ref:mesRef,tipo,valor_disparado:valorDisparado,base:base||''});
+  }
+  // Enviar email
+  const link=`${location.origin}/controles/tratativas/responder.html?id=${trat?.id}`;
+  const tipoLabel={impedimentos:'Impedimentos GBS',erros:'Erros de leitura',meta:'Meta de leituras',inicio_tardio:'Início tardio'}[tipo]||tipo;
+  await enviarEmailTratativa(
+    sup.email,
+    'Gestão de Controles - Ação atribuída a você',
+    `<div style="font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;color:#1a2a1a">
+      <div style="background:#1a4a1a;padding:14px 20px;border-radius:8px 8px 0 0"><span style="color:#c8e8c8;font-weight:500;font-size:15px">GBS Serviços — Gestão de Controles</span></div>
+      <div style="background:#fff;border:0.5px solid #c0dcc0;padding:20px;border-radius:0 0 8px 8px">
+        <p style="margin-bottom:14px">Olá, <strong>${sup.nome}</strong>!</p>
+        <p style="margin-bottom:14px">Uma ocorrência foi identificada e requer sua atenção.</p>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
+          ${base?`<tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500;width:35%">Base</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${base}</td></tr>`:''}
+          <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Tipo</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${tipoLabel}</td></tr>
+          <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Ocorrência</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${detalhe}</td></tr>
+        </table>
+        <p style="margin-bottom:16px">Por favor, registre a tratativa até <strong>${prazoStr}</strong> clicando no botão abaixo.</p>
+        <div style="text-align:center;margin-bottom:20px"><a href="${link}" style="background:#2d7a2d;color:#fff;padding:10px 28px;border-radius:6px;text-decoration:none;font-weight:500;font-size:13px">REGISTRAR TRATATIVA</a></div>
+        <p style="font-size:11px;color:#4a7a4a;border-top:0.5px solid #c0dcc0;padding-top:12px">At.te<br><strong>Gestão de Controles</strong></p>
+      </div>
+    </div>`
+  );
+}
+
+// ── VERIFICAR GATILHOS APÓS UPLOAD (impedimentos) ─────────────────
+async function verificarGatilhosImpedimentos(mesRef){
+  const cfg=await getConfig();
+  if(!cfg||!cfg.impedimentos_ativo) return;
+  const qtdGatilho=cfg.impedimentos_qtd||10;
+  const [mm,aa]=mesRef.split('/');
+  const di=`${aa}-${mm}-01`;
+  const df=`${aa}-${mm}-${String(new Date(parseInt(aa),parseInt(mm),0).getDate()).padStart(2,'0')}`;
+  // Contar impedimentos GBS por leiturista no mês
+  const {data:imps}=await sb.from('impedimentos').select('matricula,base')
+    .gte('data',di).lte('data',df).eq('responsabilidade','GBS');
+  if(!imps||!imps.length) return;
+  // Agrupar por matricula+base
+  const contagem={};
+  imps.forEach(r=>{
+    const chave=`${r.matricula}|${r.base||''}`;
+    if(!contagem[chave]) contagem[chave]={qtd:0,base:r.base,matricula:r.matricula};
+    contagem[chave].qtd++;
+  });
+  // Buscar nomes
+  const mats=[...new Set(Object.values(contagem).map(v=>v.matricula))];
+  const {data:matData}=await sb.from('matriculas').select('matricula,nome_leiturista').in('matricula',mats);
+  const nomeMap={};
+  (matData||[]).forEach(r=>nomeMap[r.matricula]=r.nome_leiturista);
+  // Disparar para cada múltiplo atingido
+  for(const [chave,v] of Object.entries(contagem)){
+    const multiplosAtingidos=Math.floor(v.qtd/qtdGatilho);
+    for(let m=1;m<=multiplosAtingidos;m++){
+      const valorDisp=m*qtdGatilho;
+      await dispararTratativa({
+        tipo:'impedimentos', matricula:v.matricula,
+        nomeLeiturista:nomeMap[v.matricula]||v.matricula, base:v.base, mesRef,
+        detalhe:`${v.qtd} impedimentos GBS no mês (gatilho: ${valorDisp})`,
+        valorDisparado:valorDisp
+      });
+    }
+  }
+}
+
+// ── VERIFICAR GATILHOS APÓS UPLOAD (erros) ────────────────────────
+async function verificarGatilhosErros(mesRef){
+  const cfg=await getConfig();
+  if(!cfg||!cfg.erros_ativo) return;
+  const qtdGatilho=cfg.erros_qtd||1;
+  // Buscar erros do mes
+  const [mm,aa]=mesRef.split('/');
+  const mesDb=`${aa}-${mm}-01`;
+  const {data:erros}=await sb.from('erros').select('matricula,base,nome').eq('mes_erro',mesDb);
+  if(!erros||!erros.length) return;
+  const contagem={};
+  erros.forEach(r=>{
+    if(!contagem[r.matricula]) contagem[r.matricula]={qtd:0,base:r.base,nome:r.nome};
+    contagem[r.matricula].qtd++;
+  });
+  for(const [mat,v] of Object.entries(contagem)){
+    if(v.qtd>=qtdGatilho){
+      const multiplos=Math.floor(v.qtd/qtdGatilho);
+      for(let m=1;m<=multiplos;m++){
+        const valorDisp=m*qtdGatilho;
+        await dispararTratativa({
+          tipo:'erros', matricula:mat,
+          nomeLeiturista:v.nome||mat, base:v.base, mesRef,
+          detalhe:`${v.qtd} erros de leitura no mês (gatilho: ${valorDisp})`,
+          valorDisparado:valorDisp
+        });
+      }
+    }
+  }
+}
+
+// ── FECHAR MÊS (meta + início tardio) ────────────────────────────
+async function fecharMes(){
+  const mes=document.getElementById('fechar-mes-sel').value;
+  if(!mes) return;
+  const prog=document.getElementById('prog-fechar-mes');
+  const btn=document.getElementById('btn-fechar-mes');
+  btn.disabled=true; prog.className='progresso'; prog.textContent='Processando...';
+  try{
+    const cfg=await getConfig();
+    const [mm,aa]=mes.split('/');
+    const di=`${aa}-${mm}-01`;
+    const df=`${aa}-${mm}-${String(new Date(parseInt(aa),parseInt(mm),0).getDate()).padStart(2,'0')}`;
+    // Buscar jornada do mês
+    const {data:jornada}=await sb.from('jornada').select('matricula,rz,qtd_leituras,hora_inicial')
+      .gte('data',di).lte('data',df);
+    if(!jornada||!jornada.length){prog.textContent='Nenhum dado encontrado para esse mês.';btn.disabled=false;return;}
+    // Agrupar por leiturista
+    const acum={};
+    jornada.forEach(r=>{
+      const mat=r.matricula;
+      if(!acum[mat]) acum[mat]={urb:0,rur:0,diasUrb:0,diasRur:0,somaInicio:0,diasInicio:0};
+      const n=parseInt(String(r.rz||'').split('.')[0]);
+      const leit=r.qtd_leituras||0;
+      if(leit<10) return;
+      if(n>=1&&n<=88){acum[mat].urb+=leit;acum[mat].diasUrb++;}
+      else if(n>=89&&n<=99){acum[mat].rur+=leit;acum[mat].diasRur++;}
+      if(r.hora_inicial){
+        const [hh,mi]=(r.hora_inicial||'00:00').split(':').map(Number);
+        acum[mat].somaInicio+=hh*60+mi;
+        acum[mat].diasInicio++;
+      }
+    });
+    // Buscar nomes e bases
+    const mats=Object.keys(acum);
+    const {data:matData}=await sb.from('matriculas').select('matricula,nome_leiturista,base').in('matricula',mats);
+    const infoMap={};
+    (matData||[]).forEach(r=>infoMap[r.matricula]={nome:r.nome_leiturista,base:r.base});
+    let disparosFeitos=0;
+    for(const [mat,v] of Object.entries(acum)){
+      const info=infoMap[mat]||{nome:mat,base:''};
+      // Meta leituras
+      if(cfg.meta_ativo){
+        const mediaUrb=v.diasUrb>0?Math.round(v.urb/v.diasUrb):0;
+        const mediaRur=v.diasRur>0?Math.round(v.rur/v.diasRur):0;
+        if(v.urb>=v.rur && v.diasUrb>0 && mediaUrb<cfg.meta_urb){
+          await dispararTratativa({tipo:'meta',matricula:mat,nomeLeiturista:info.nome,base:info.base,mesRef:mes,
+            detalhe:`Média urbana ${mediaUrb}/dia (meta: ${cfg.meta_urb})`,valorDisparado:null});
+          disparosFeitos++;
+        }
+        if(v.rur>v.urb && v.diasRur>0 && mediaRur<cfg.meta_rur){
+          await dispararTratativa({tipo:'meta',matricula:mat,nomeLeiturista:info.nome,base:info.base,mesRef:mes,
+            detalhe:`Média rural ${mediaRur}/dia (meta: ${cfg.meta_rur})`,valorDisparado:null});
+          disparosFeitos++;
+        }
+      }
+      // Início tardio
+      if(cfg.inicio_tardio_ativo && v.diasInicio>0){
+        const mediaInicio=Math.round(v.somaInicio/v.diasInicio);
+        const [limH,limM]=(cfg.inicio_tardio_hora||'09:00').split(':').map(Number);
+        const limMin=limH*60+limM;
+        if(mediaInicio>limMin){
+          const hh=String(Math.floor(mediaInicio/60)).padStart(2,'0');
+          const mi=String(mediaInicio%60).padStart(2,'0');
+          await dispararTratativa({tipo:'inicio_tardio',matricula:mat,nomeLeiturista:info.nome,base:info.base,mesRef:mes,
+            detalhe:`Média de início ${hh}:${mi} (limite: ${cfg.inicio_tardio_hora})`,valorDisparado:null});
+          disparosFeitos++;
+        }
+      }
+    }
+    prog.className='progresso ok';
+    prog.textContent=`\u2713 Mês ${mes} fechado! ${disparosFeitos} email(s) disparado(s).`;
+  }catch(e){prog.className='progresso erro';prog.textContent='Erro: '+e.message;console.error(e);}
+  btn.disabled=false;
+}
+
+async function carregarInfoAdmin(){
+  const {data:ld}=await sb.from('local_base').select('local');
+  document.getElementById('qtd-locais').textContent=(ld||[]).length;
+  // Popular select fechar mês
+  const sel=document.getElementById('fechar-mes-sel');
+  const hoje=new Date();
+  for(let i=1;i<=12;i++){
+    const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1);
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    sel.innerHTML+=`<option value="${mm}/${d.getFullYear()}">${mm}/${d.getFullYear()}</option>`;
+  }
+}
+let PERFIL_BASE=null; // base do usuário logado (null = gestor, vê tudo)
+let PERFIL_TIPO=null; // 'gestor' | 'supervisor' | 'auxiliar'
+
+// ── INIT ─────────────────────────────────────────────────────────
 (async()=>{
   const {data:{user}}=await sb.auth.getUser();
-  if(!user){ location.href='../login.html'; return; }
+  if(!user){location.href='login.html';return;}
 
-  const {data:up}=await sb.from('usuarios_portal').select('nome,perfil,base,ativo').eq('id',user.id).single();
+  // Buscar perfil na tabela usuarios_portal
+  const {data:up}=await sb.from('usuarios_portal')
+    .select('nome,perfil,base,ativo').eq('id',user.id).single();
+
   if(up&&up.ativo){
-    PERFIL_TIPO=up.perfil; PERFIL_BASE=up.base||null;
-    document.getElementById('hdr-user').textContent=up.nome||user.email;
+    PERFIL_TIPO=up.perfil;
+    PERFIL_BASE=up.base||null; // null = sem restrição
+    document.getElementById('user-info').textContent=up.nome||user.email;
   } else {
-    document.getElementById('hdr-user').textContent=user.email;
-    PERFIL_TIPO='gestor'; PERFIL_BASE=null;
+    // fallback: usa email, sem restrição (gestor)
+    document.getElementById('user-info').textContent=user.email;
+    PERFIL_TIPO='gestor';
+    PERFIL_BASE=null;
   }
 
-  // Esconder admin se não for gestor
+  // Se supervisor com base definida: ocultar select de base, travar no valor
+  if(PERFIL_BASE){
+    // Painel
+    const selBase=document.getElementById('f-base');
+    if(selBase){
+      selBase.innerHTML=`<option value="${PERFIL_BASE}">${PERFIL_BASE}</option>`;
+      selBase.value=PERFIL_BASE;
+      selBase.disabled=true;
+      selBase.closest('div').style.display='none'; // esconde do sidebar
+    }
+    // Outras abas — esconde e trava
+    ['rk-base','ah-base'].forEach(id=>{
+      const s=document.getElementById(id);
+      if(s){
+        s.innerHTML=`<option value="${PERFIL_BASE}">${PERFIL_BASE}</option>`;
+        s.value=PERFIL_BASE;
+        s.disabled=true;
+        s.closest('div').style.display='none';
+      }
+    });
+  }
+
+  // Esconder aba Admin se não for gestor
   if(PERFIL_TIPO!=='gestor'){
     document.querySelectorAll('.nav button').forEach(btn=>{
       if(btn.textContent.trim()==='Administração') btn.style.display='none';
     });
   }
 
-  // Travar filtro de base se supervisor
-  if(PERFIL_BASE){
-    const fBase=document.getElementById('f-base');
-    fBase.innerHTML=`<option value="${PERFIL_BASE}">${PERFIL_BASE}</option>`;
-    fBase.value=PERFIL_BASE;
-    fBase.disabled=true;
-    fBase.closest('div').style.display='none';
-  }
-
-  await carregarMeses();
+  await iniciarFiltros();
 })();
 </script>
 </body>
