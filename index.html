@@ -132,8 +132,9 @@ td.left{text-align:left}
 
   <!-- Tabela detalhada -->
   <div class="secao">
-    <div class="secao-hdr">
-      <span>&#9776; Detalhamento por UL / Leiturista</span>
+    <div class="secao-hdr" style="justify-content:space-between">
+      <span style="flex:1;text-align:center">&#9776; Detalhamento por UL / Leiturista</span>
+      <button onclick="downloadExcelFotos()" style="background:#2d7a2d;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">⬇ Excel</button>
     </div>
     <div class="secao-body">
       <table>
@@ -424,9 +425,33 @@ function renderGraficos(dados){
   });
 }
 
+let dadosTabelaAtual=[];
+
+function downloadExcelFotos(){
+  if(!dadosTabelaAtual.length){alert('Nenhum dado para exportar.');return;}
+  const rows=dadosTabelaAtual.map(r=>({
+    'UL':r.ul||'—',
+    'RZ':r.rz||'—',
+    'Tipo':r.tipo_rota||'—',
+    'Leiturista':r.matricula||'—',
+    'Nome':r.nome||'—',
+    'Base':r.base||'—',
+    'Solicitadas':r.solicit||0,
+    'Realizadas':r.realiz||0,
+    'Ñ Executadas':r.n_exec||0,
+    'Taxa Ñ Exec.':(r.solicit>0?(((r.n_exec||0)/r.solicit)*100).toFixed(1)+'%':'0%')
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Fotos');
+  const mes=document.getElementById('f-mes').value.replace(/-/g,'');
+  XLSX.writeFile(wb,`fotos_${mes}.xlsx`);
+}
+
 function renderTabela(dados){
   // Ordenar por n_exec desc
   const sorted=[...dados].filter(r=>(r.n_exec||0)>0).sort((a,b)=>a.ul.localeCompare(b.ul));
+  dadosTabelaAtual=sorted;
   const total=sorted.length;
 
   document.getElementById('tbody-fotos').innerHTML=sorted.length
