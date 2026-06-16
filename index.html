@@ -18,6 +18,8 @@ body{font-family:system-ui,sans-serif;background:#f4f6f4;color:#1a2a1a;font-size
 .btn-sair{background:none;border:1px solid #4a7a4a;color:#c8e8c8;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px}
 .nav{display:flex;gap:2px;background:#0f2e0f;padding:6px 20px}
 .nav button{background:none;border:none;color:#90c090;padding:6px 16px;border-radius:4px;cursor:pointer;font-size:13px}
+.nav .btn-home{background:none;border:none;color:#90c090;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:15px;text-decoration:none;display:inline-flex;align-items:center}
+.nav .btn-home:hover{background:#1a4a1a}
 .nav button.ativo{background:#2d7a2d;color:#fff}
 .nav button:hover:not(.ativo){background:#1a4a1a}
 .pag{display:none;padding:16px 20px}
@@ -73,6 +75,7 @@ td.left{text-align:left}
   <button class="btn-sair" onclick="sair()">Sair</button>
 </div>
 <div class="nav">
+  <a href="https://gbsservicos.com/controles/teste/index.html" class="btn-home" title="Portal">🏠</a>
   <button class="ativo" onclick="irPag('painel',this)">Painel</button>
   <button onclick="irPag('admin',this)">Administração</button>
 </div>
