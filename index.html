@@ -114,6 +114,15 @@ td.left{text-align:left}
     <div class="grafico-box">
       <h3>Quantidades por Base</h3>
       <canvas id="chart-base"></canvas>
+      <div id="base-disparos" style="display:none;margin-top:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label style="font-size:11px;color:#4a7a4a;display:flex;align-items:center;gap:4px">
+            <input type="checkbox" id="chk-all-base" onchange="selecionarTodasBases(this)"> Selecionar todas
+          </label>
+          <button id="btn-disparar-fotos" onclick="dispararFotos()" style="display:none;background:#1a4a1a;color:#c0e8c0;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11px">✈️ Disparar (<span id="sel-count-fotos">0</span>)</button>
+        </div>
+        <div id="base-checks" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
     </div>
     <div class="grafico-box">
       <h3>Fotos Ñ Exec. por Leiturista (Top 15)</h3>
@@ -351,6 +360,19 @@ function renderGraficos(dados){
   });
   const basesArr=Object.entries(porBase).sort((a,b)=>b[1].nexec-a[1].nexec);
 
+  // Gerar checkboxes sincronizados com a ordem das barras
+  if(PODE_DISPARAR_FOTOS()){
+    const cont=document.getElementById('base-checks');
+    cont.innerHTML=basesArr.map(([base,v])=>`
+      <label style="font-size:11px;color:#1a2a1a;display:flex;align-items:center;gap:3px;background:#f8fbf8;border:0.5px solid #c0dcc0;border-radius:4px;padding:3px 7px;cursor:pointer">
+        <input type="checkbox" class="chk-base" data-base="${base}" data-nexec="${v.nexec}" onchange="atualizarContFotos()">
+        ${base} (${v.nexec.toLocaleString('pt-BR')})
+      </label>`).join('');
+    document.getElementById('btn-disparar-fotos').style.display='none';
+    document.getElementById('sel-count-fotos').textContent='0';
+    document.getElementById('chk-all-base').checked=false;
+  }
+
   if(chartBase) chartBase.destroy();
   chartBase=new Chart(document.getElementById('chart-base'),{
     type:'bar',
@@ -521,6 +543,89 @@ async function processarFotos(){
 }
 
 let PERFIL_BASE=null, PERFIL_TIPO=null;
+let SUPS_MAP_FOTOS={};
+const PODE_DISPARAR_FOTOS=()=>['gestor','gestor1','supervisor_geral'].includes(PERFIL_TIPO);
+
+function selecionarTodasBases(chk){
+  document.querySelectorAll('.chk-base').forEach(c=>c.checked=chk.checked);
+  atualizarContFotos();
+}
+function atualizarContFotos(){
+  const sel=document.querySelectorAll('.chk-base:checked').length;
+  document.getElementById('sel-count-fotos').textContent=sel;
+  document.getElementById('btn-disparar-fotos').style.display=sel>0?'':'none';
+}
+
+async function dispararFotos(){
+  const checks=[...document.querySelectorAll('.chk-base:checked')];
+  if(!checks.length) return;
+
+  const senha=prompt('Senha para disparar tratativas:');
+  if(senha!=='GBS@2026'){if(senha!==null)alert('Senha incorreta.');return;}
+
+  const diasStr=prompt(`Quantos dias de prazo para o tratamento? (${checks.length} base(s) selecionada(s))`);
+  if(!diasStr||isNaN(parseInt(diasStr))){alert('Informe um número de dias válido.');return;}
+  const dias=parseInt(diasStr);
+  const prazoDate=new Date(); prazoDate.setDate(prazoDate.getDate()+dias);
+  const prazoISO=prazoDate.toISOString().slice(0,10);
+  const prazoFmt=prazoDate.toLocaleDateString('pt-BR');
+
+  let enviados=0, semSup=[];
+  for(const c of checks){
+    const base=c.dataset.base;
+    const nexec=parseInt(c.dataset.nexec)||0;
+    const sup=SUPS_MAP_FOTOS[base.toUpperCase()];
+    if(!sup){semSup.push(base);continue;}
+
+    const mesAtual=document.getElementById('f-mes').value;
+    const ocorrencia=`${nexec.toLocaleString('pt-BR')} foto(s) não executada(s) na base ${base} no mês ${mesAtual}.`;
+
+    const {data:trat}=await sb.from('tratativas').insert({
+      tipo:'fotos_nao_executadas', automatica:false,
+      supervisor_nome:sup.nome, supervisor_email:sup.email, base,
+      detalhe:ocorrencia, prazo_resposta:prazoISO,
+    }).select().single();
+
+    const link=`${location.origin}/controles/tratativas/responder.html?id=${trat?.id}`;
+    const corpo=`
+<div style="font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;color:#1a2a1a">
+  <div style="background:#1a4a1a;padding:14px 20px;border-radius:8px 8px 0 0">
+    <span style="color:#c8e8c8;font-weight:500;font-size:15px">GBS Serviços — Gestão de Controles</span>
+  </div>
+  <div style="background:#fff;border:0.5px solid #c0dcc0;padding:20px;border-radius:0 0 8px 8px">
+    <p style="margin-bottom:14px">Olá, <strong>${sup.nome}</strong>!</p>
+    <p style="margin-bottom:14px">Uma ocorrência foi identificada e requer sua atenção.</p>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px">
+      <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500;width:40%">Base</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${base}</td></tr>
+      <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Tipo</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">Fotos não executadas</td></tr>
+      <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Mês</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0">${mesAtual}</td></tr>
+      <tr><td style="padding:6px 10px;border:0.5px solid #c0dcc0;background:#f8fbf8;font-weight:500">Qtd. não executadas</td><td style="padding:6px 10px;border:0.5px solid #c0dcc0;font-weight:500;color:#dc2626">${nexec.toLocaleString('pt-BR')}</td></tr>
+    </table>
+    <p style="margin-bottom:16px">Por favor, registre a tratativa até <strong>${prazoFmt}</strong> clicando no botão abaixo.</p>
+    <div style="text-align:center;margin-bottom:20px">
+      <a href="${link}" style="background:#2d7a2d;color:#fff;padding:10px 28px;border-radius:6px;text-decoration:none;font-weight:500;font-size:13px">REGISTRAR TRATATIVA</a>
+    </div>
+    <p style="font-size:11px;color:#4a7a4a;border-top:0.5px solid #c0dcc0;padding-top:12px">At.te<br><strong>Gestão de Controles</strong></p>
+  </div>
+</div>`;
+
+    await fetch(`${SUPABASE_URL}/functions/v1/enviar-email`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${SUPABASE_KEY}`},
+      body:JSON.stringify({para:sup.email,assunto:'Gestão de Controles - Ação atribuída a você',corpo})
+    });
+    enviados++;
+  }
+
+  let msg=`✓ ${enviados} email(s) disparado(s)!`;
+  if(semSup.length) msg+=`
+
+Sem supervisor cadastrado: ${semSup.join(', ')}`;
+  alert(msg);
+  document.querySelectorAll('.chk-base').forEach(c=>c.checked=false);
+  document.getElementById('chk-all-base').checked=false;
+  atualizarContFotos();
+}
 
 (async()=>{
   const {data:{user}}=await sb.auth.getUser();
@@ -551,6 +656,11 @@ let PERFIL_BASE=null, PERFIL_TIPO=null;
     fBase.closest('div').style.display='none';
   }
 
+  if(PODE_DISPARAR_FOTOS()){
+    const {data:sups}=await sb.from('usuarios_portal').select('nome,email,base').in('perfil',['supervisor']).eq('ativo',true);
+    (sups||[]).forEach(s=>{ if(s.base) SUPS_MAP_FOTOS[s.base.toUpperCase()]={nome:s.nome,email:s.email}; });
+    document.getElementById('base-disparos').style.display='';
+  }
   await carregarMeses();
 })();
 </script>
