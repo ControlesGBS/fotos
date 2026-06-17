@@ -323,7 +323,7 @@ function aplicarFiltros(){
   const tipo=document.getElementById('f-tipo').value;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
   const filt=dadosRaw.filter(r=>{
-    if(base&&r.base!==base) return false;
+    if(base&&(r.base||'').toLowerCase()!==base.toLowerCase()) return false;
     if(rz&&r.rz!==rz) return false;
     if(leit&&r.matricula!==leit) return false;
     if(tipo&&r.tipo_rota!==tipo) return false;
