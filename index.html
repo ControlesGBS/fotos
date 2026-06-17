@@ -610,7 +610,7 @@ async function dispararFotos(){
     const {data:trat}=await sb.from('tratativas').insert({
       tipo:'fotos_nao_executadas', automatica:false,
       supervisor_nome:sup.nome, supervisor_email:sup.email, base,
-      detalhe:ocorrencia, prazo_resposta:prazoISO,
+      detalhe:ocorrencia, prazo_resposta:prazoISO, mes_ref:mesRefVal,
     }).select().single();
 
     const link=`${location.origin}/controles/tratativas/responder.html?id=${trat?.id}`;
