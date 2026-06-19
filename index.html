@@ -295,9 +295,10 @@ async function carregarDados(){
   leituristas=nomeMap;
 
   // Popular filtros
+  const dadosEscopo = PERFIL_BASE ? dadosRaw.filter(r=>(r.base||'').toLowerCase()===PERFIL_BASE.toLowerCase()) : dadosRaw;
   const bases=[...new Set(dadosRaw.map(r=>r.base).filter(Boolean))].sort();
-  const rzs=[...new Set(dadosRaw.map(r=>r.rz).filter(Boolean))].sort();
-  const matsArr=[...new Set(dadosRaw.map(r=>r.matricula).filter(Boolean))].sort();
+  const rzs=[...new Set(dadosEscopo.map(r=>r.rz).filter(Boolean))].sort();
+  const matsArr=[...new Set(dadosEscopo.map(r=>r.matricula).filter(Boolean))].sort();
 
   const fBase=document.getElementById('f-base');
   const fRz=document.getElementById('f-rz');
