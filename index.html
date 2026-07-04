@@ -399,7 +399,7 @@ function renderGraficos(dados){
   const porLeit={};
   dados.forEach(r=>{
     if(!r.matricula) return;
-    if(!porLeit[r.matricula]) porLeit[r.matricula]={nexec:0,nome:r.nome||r.matricula};
+    if(!porLeit[r.matricula]) porLeit[r.matricula]={nexec:0,nome:r.nome||r.matricula,base:r.base||'—'};
     porLeit[r.matricula].nexec+=r.n_exec||0;
   });
   const leitArr=Object.entries(porLeit).sort((a,b)=>b[1].nexec-a[1].nexec).slice(0,15);
@@ -418,6 +418,12 @@ function renderGraficos(dados){
       responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:(items)=>leitArr[items[0].dataIndex][1].nome,
+            label:(item)=>leitArr[item.dataIndex][1].base
+          }
+        },
         datalabels:{anchor:'end',align:'top',font:{size:9},color:'#1a2a1a',
           formatter:v=>v>0?v:''}
       },
