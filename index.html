@@ -586,9 +586,6 @@ async function dispararFotos(){
   const checks=[...document.querySelectorAll('.chk-base:checked')];
   if(!checks.length) return;
 
-  const senha=prompt('Senha para disparar tratativas:');
-  if(senha!=='GBS@2026'){if(senha!==null)alert('Senha incorreta.');return;}
-
   const diasStr=prompt(`Quantos dias de prazo para o tratamento? (${checks.length} base(s) selecionada(s))`);
   if(!diasStr||isNaN(parseInt(diasStr))){alert('Informe um número de dias válido.');return;}
   const dias=parseInt(diasStr);
