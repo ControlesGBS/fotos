@@ -295,7 +295,7 @@ async function carregarDados(){
   leituristas=nomeMap;
 
   // Popular filtros
-  const dadosEscopo = PERFIL_BASE ? dadosRaw.filter(r=>(r.base||'').toLowerCase()===PERFIL_BASE.toLowerCase()) : dadosRaw;
+  const dadosEscopo = PERFIL_BASE ? dadosRaw.filter(r=>normBase(r.base)===normBase(PERFIL_BASE)) : dadosRaw;
   const bases=[...new Set(dadosRaw.map(r=>r.base).filter(Boolean))].sort();
   const rzs=[...new Set(dadosEscopo.map(r=>r.rz).filter(Boolean))].sort();
   const matsArr=[...new Set(dadosEscopo.map(r=>r.matricula).filter(Boolean))].sort();
@@ -324,7 +324,7 @@ function aplicarFiltros(){
   const tipo=document.getElementById('f-tipo').value;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
   const filt=dadosRaw.filter(r=>{
-    if(base&&(r.base||'').toLowerCase()!==base.toLowerCase()) return false;
+    if(base&&normBase(r.base)!==normBase(base)) return false;
     if(rz&&r.rz!==rz) return false;
     if(leit&&r.matricula!==leit) return false;
     if(tipo&&r.tipo_rota!==tipo) return false;
@@ -575,6 +575,11 @@ async function processarFotos(){
 }
 
 let PERFIL_BASE=null, PERFIL_TIPO=null, USUARIO_NOME=null;
+
+// Normaliza nome de base: remove acentos, espaços extras e diferenças de maiúscula/minúscula
+function normBase(s){
+  return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+}
 let SUPS_MAP_FOTOS={};
 const PODE_DISPARAR_FOTOS=()=>['gestor','gestor1','supervisor_geral'].includes(PERFIL_TIPO);
 
