@@ -570,11 +570,17 @@ async function processarFotos(){
     }
     prog.className='progresso ok';
     prog.textContent=`✓ ${recs.length} ULs salvas para ${mesRef.slice(5,7)}/${mesRef.slice(0,4)}!`;
+    registrarUploadSupabase('fotos');
     carregarMeses();
   }catch(e){ prog.className='progresso erro'; prog.textContent='Erro: '+e.message; console.error(e); btn.disabled=false; }
 }
 
 let PERFIL_BASE=null, PERFIL_TIPO=null, USUARIO_NOME=null;
+
+// ── LOG DE ATUALIZAÇÃO (Supabase — alimenta o popup global) ──────
+async function registrarUploadSupabase(tipo){
+  await sb.from('uploads_log').upsert({tipo,atualizado_em:new Date().toISOString(),atualizado_por:USUARIO_NOME||'—'});
+}
 
 // Normaliza nome de base: remove acentos, espaços extras e diferenças de maiúscula/minúscula
 function normBase(s){
@@ -702,5 +708,6 @@ Sem supervisor cadastrado: ${semSup.join(', ')}`;
 })();
 </script>
 <script src="/controles/auto-logout.js"></script>
+<script src="/controles/notificacoes-atualizacao.js"></script>
 </body>
 </html>
