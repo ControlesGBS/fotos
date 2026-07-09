@@ -220,16 +220,24 @@ async function sair(){ await sb.auth.signOut(); location.href='https://gbsservic
 
 function pctClass(pct){ if(pct<=10) return 'pct-ok'; if(pct<=30) return 'pct-med'; return 'pct-ruim'; }
 
+// Busca todas as páginas de uma tabela em paralelo (usa o count exato pra saber
+// de antemão quantas páginas existem, em vez de pedir uma de cada vez em série)
+async function buscarPaginado(tabela, colunas, montarQuery){
+  const LOTE=1000;
+  let q=sb.from(tabela).select('*',{count:'exact',head:true});
+  if(montarQuery) q=montarQuery(q);
+  const {count}=await q;
+  const totalPaginas=Math.max(1,Math.ceil((count||0)/LOTE));
+  const paginas=await Promise.all(Array.from({length:totalPaginas},(_,i)=>{
+    let p=sb.from(tabela).select(colunas);
+    if(montarQuery) p=montarQuery(p);
+    return p.range(i*LOTE,i*LOTE+LOTE-1);
+  }));
+  return paginas.flatMap(p=>p.data||[]);
+}
+
 async function carregarMeses(){
-  // Buscar todos os registros para pegar meses distintos (pode ter mais de 1000)
-  let allRecs=[], from=0;
-  while(true){
-    const {data:lote}=await sb.from('fotos').select('mes_ref').order('mes_ref',{ascending:false}).range(from,from+999);
-    if(!lote||!lote.length) break;
-    allRecs=allRecs.concat(lote);
-    if(lote.length<1000) break;
-    from+=1000;
-  }
+  const allRecs=await buscarPaginado('fotos','mes_ref', q=>q.order('mes_ref',{ascending:false}));
   const meses=[...new Set(allRecs.map(r=>r.mes_ref))].sort().reverse();
   const sel=document.getElementById('f-mes');
   sel.innerHTML='<option value="">-- selecione --</option>';
@@ -245,33 +253,15 @@ async function carregarDados(){
   const mesRef=document.getElementById('f-mes').value;
   if(!mesRef) return;
 
-  // Buscar calendário do mês
-  const {data:cal}=await sb.from('calendario_leitura').select('rz,data_leitura').eq('mes_ref',mesRef);
+  // calendário, fotos e leituristas não dependem uns dos outros — busca tudo em paralelo
+  const [{data:cal}, fotos, ulLeitAll] = await Promise.all([
+    sb.from('calendario_leitura').select('rz,data_leitura').eq('mes_ref',mesRef),
+    buscarPaginado('fotos','*', q=>q.eq('mes_ref',mesRef).order('ul')),
+    buscarPaginado('ul_leiturista','ul,matricula,mes_ref', q=>q.lte('mes_ref',mesRef).order('mes_ref',{ascending:false}).order('ul'))
+  ]);
   calMap={};
   (cal||[]).forEach(r=>{ calMap[r.rz]=r.data_leitura; });
 
-  // Buscar fotos
-  let fotos=[], from=0;
-  while(true){
-    const {data:lote}=await sb.from('fotos').select('*').eq('mes_ref',mesRef).range(from,from+999);
-    if(!lote||!lote.length) break;
-    fotos=fotos.concat(lote);
-    if(lote.length<1000) break;
-    from+=1000;
-  }
-
-  // Buscar leituristas — pegar o mais próximo ao mês selecionado
-  let ulLeitAll=[], ulFrom=0;
-  while(true){
-    const {data:lote}=await sb.from('ul_leiturista').select('ul,matricula,mes_ref')
-      .lte('mes_ref', mesRef)
-      .order('mes_ref', {ascending:false})
-      .range(ulFrom,ulFrom+999);
-    if(!lote||!lote.length) break;
-    ulLeitAll=ulLeitAll.concat(lote);
-    if(lote.length<1000) break;
-    ulFrom+=1000;
-  }
   // Para cada UL, usar o registro do mês mais recente <= mês selecionado
   const ulLeitMap={};
   ulLeitAll.forEach(r=>{
@@ -562,7 +552,13 @@ async function processarFotos(){
     if(!recs.length){ prog.textContent='Nenhum dado com fotos encontrado.'; btn.disabled=false; return; }
 
     prog.textContent=`${recs.length} ULs encontradas. Salvando...`;
-    await sb.from('fotos').delete().eq('mes_ref',mesRef);
+    // Apaga só as ULs que estão sendo reenviadas (não o mês inteiro) — subir de novo o
+    // RZ de um dia não pode apagar os outros RZs já cadastrados no mesmo mês.
+    const ulsNovos=recs.map(r=>r.ul);
+    const LOTE_DEL=200;
+    await Promise.all(Array.from({length:Math.ceil(ulsNovos.length/LOTE_DEL)},(_,i)=>
+      sb.from('fotos').delete().eq('mes_ref',mesRef).in('ul', ulsNovos.slice(i*LOTE_DEL,i*LOTE_DEL+LOTE_DEL))
+    ));
     const LOTE=500;
     for(let i=0;i<recs.length;i+=LOTE){
       await sb.from('fotos').insert(recs.slice(i,i+LOTE));
